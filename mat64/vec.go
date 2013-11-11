@@ -122,3 +122,57 @@ func (m *Vec) Mul(a, b Matrix) {
 	}
 	*m = w
 }
+
+func (m *Vec) Scale(f float64, a Matrix) {
+	ar, ac := a.Dims()
+
+	w := *m
+
+	if ac != 1 {
+		panic(ErrShape)
+	}
+
+	if len(w) == 0 {
+		w = make(Vec, ar)
+	} else if ar != len(w) {
+		panic(ErrShape)
+	}
+
+	switch a := a.(type) {
+	case *Vec:
+		if &w != a {
+			copy(w, *a)
+		}
+		blasEngine.Dscal(ar, f, w, 1)
+	case Vec:
+		copy(w, a)
+		blasEngine.Dscal(ar, f, w, 1)
+	default:
+		for r := 0; r < ar; r++ {
+			w[r] = f * a.At(r, 1)
+		}
+	}
+
+	*m = w
+}
+
+func (m Vec) Copy(a Matrix) (r, c int) {
+	r, c = a.Dims()
+	r = min(r, len(m))
+	if c < 1 {
+		return r, c
+	}
+	c = 1
+
+	switch a := a.(type) {
+	case *Vec:
+		copy(m, *a)
+	case Vec:
+		copy(m, a)
+	default:
+		for i := 0; i < r; i++ {
+			m[i] = a.At(i, 1)
+		}
+	}
+	return r, c
+}
