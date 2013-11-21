@@ -46,6 +46,21 @@ func unflatten(r, c int, d []float64) [][]float64 {
 	return m
 }
 
+func mustDense(m *Dense, err error) *Dense {
+	if err != nil {
+		panic(err)
+	}
+	return m
+}
+
+func eye() *Dense {
+	return mustDense(NewDense(3, 3, []float64{
+		1, 0, 0,
+		0, 1, 0,
+		0, 0, 1,
+	}))
+}
+
 func (s *S) TestMaybe(c *check.C) {
 	for i, test := range []struct {
 		fn     Panicker
@@ -86,7 +101,7 @@ func (s *S) TestNewDense(c *check.C) {
 			0, 0,
 			0,
 			&Dense{BlasMatrix{
-				Order: blasOrder,
+				Order: BlasOrder,
 				Rows:  3, Cols: 3,
 				Stride: 3,
 				Data:   []float64{0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -102,7 +117,7 @@ func (s *S) TestNewDense(c *check.C) {
 			1, 1,
 			3,
 			&Dense{BlasMatrix{
-				Order: blasOrder,
+				Order: BlasOrder,
 				Rows:  3, Cols: 3,
 				Stride: 3,
 				Data:   []float64{1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -118,7 +133,7 @@ func (s *S) TestNewDense(c *check.C) {
 			0, 1,
 			1.7320508075688772,
 			&Dense{BlasMatrix{
-				Order: blasOrder,
+				Order: BlasOrder,
 				Rows:  3, Cols: 3,
 				Stride: 3,
 				Data:   []float64{1, 0, 0, 0, 1, 0, 0, 0, 1},
@@ -133,7 +148,7 @@ func (s *S) TestNewDense(c *check.C) {
 			3, 3,
 			-1, 0,
 			1.7320508075688772,
-			&Dense{BlasMatrix{Order: blasOrder,
+			&Dense{BlasMatrix{Order: BlasOrder,
 				Rows: 3, Cols: 3,
 				Stride: 3,
 				Data:   []float64{-1, 0, 0, 0, -1, 0, 0, 0, -1},
@@ -147,7 +162,7 @@ func (s *S) TestNewDense(c *check.C) {
 			2, 3,
 			1, 6,
 			9.539392014169456,
-			&Dense{BlasMatrix{Order: blasOrder,
+			&Dense{BlasMatrix{Order: BlasOrder,
 				Rows: 2, Cols: 3,
 				Stride: 3,
 				Data:   []float64{1, 2, 3, 4, 5, 6},
@@ -163,7 +178,7 @@ func (s *S) TestNewDense(c *check.C) {
 			1, 6,
 			9.539392014169456,
 			&Dense{BlasMatrix{
-				Order: blasOrder,
+				Order: BlasOrder,
 				Rows:  3, Cols: 2,
 				Stride: 2,
 				Data:   []float64{1, 2, 3, 4, 5, 6},
@@ -470,7 +485,7 @@ func randDense(size int, rho float64, rnd func() float64) (*Dense, error) {
 		return nil, ErrZeroLength
 	}
 	d := &Dense{BlasMatrix{
-		Order: blasOrder,
+		Order: BlasOrder,
 		Rows:  size, Cols: size, Stride: size,
 		Data: make([]float64, size*size),
 	}}
@@ -592,6 +607,54 @@ func (s *S) TestTranspose(c *check.C) {
 		zero(rr.mat.Data)
 		rr.TCopy(&r)
 		c.Check(rr.Equals(a), check.Equals, true, check.Commentf("Test %d: %v transpose = I", i, test.a, test.t))
+	}
+}
+
+func (s *S) TestNorm(c *check.C) {
+	for i, test := range []struct {
+		a    [][]float64
+		ord  float64
+		norm float64
+	}{
+		{
+			a:    [][]float64{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {10, 11, 12}},
+			ord:  0,
+			norm: 25.495097567963924,
+		},
+		{
+			a:    [][]float64{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {10, 11, 12}},
+			ord:  1,
+			norm: 30,
+		},
+		{
+			a:    [][]float64{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {10, 11, 12}},
+			ord:  -1,
+			norm: 22,
+		},
+		{
+			a:    [][]float64{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {10, 11, 12}},
+			ord:  2,
+			norm: 25.46240743603639,
+		},
+		{
+			a:    [][]float64{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {10, 11, 12}},
+			ord:  -2,
+			norm: 9.013990486603544e-16,
+		},
+		{
+			a:    [][]float64{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {10, 11, 12}},
+			ord:  inf,
+			norm: 33,
+		},
+		{
+			a:    [][]float64{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {10, 11, 12}},
+			ord:  -inf,
+			norm: 6,
+		},
+	} {
+		a, err := NewDense(flatten(test.a))
+		c.Assert(err, check.Equals, nil, check.Commentf("Test %d", i))
+		c.Check(a.Norm(test.ord), check.Equals, test.norm, check.Commentf("Test %d: %v norm = %f", i, test.a, test.norm))
 	}
 }
 
