@@ -7,19 +7,18 @@ package cla
 import "C"
 import (
 	"github.com/gonum/matrix/mat64"
-	"github.com/gonum/matrix/mat64/la"
 	"unsafe"
 )
 
 //import "fmt"
 
-func Cholesky(a *mat64.Dense) la.CholeskyFactor {
+func Cholesky(a *mat64.Dense) mat64.CholeskyFactor {
 	// Initialize.
 	l := mat64.DenseCopyOf(a)
 	L := l.BlasMatrix()
 	spd := L.Rows == L.Cols
 	if !spd {
-		return la.CholeskyFactor{L: l, SPD: spd}
+		return mat64.CholeskyFactor{L: l, SPD: spd}
 	}
 
 	info := C.LAPACKE_dpotrf(C.int(L.Order), 'L', C.int(L.Rows),
@@ -28,10 +27,10 @@ func Cholesky(a *mat64.Dense) la.CholeskyFactor {
 	l.L(l)
 
 	spd = info == 0
-	return la.CholeskyFactor{L: l, SPD: spd}
+	return mat64.CholeskyFactor{L: l, SPD: spd}
 }
 
-func SVD(a *mat64.Dense, epsilon, small float64, wantu, wantv bool) la.SVDFactors {
+func SVD(a *mat64.Dense, epsilon, small float64, wantu, wantv bool) mat64.SVDFactors {
 	m, n := a.Dims()
 	nu := m
 	if n < m {
@@ -83,7 +82,7 @@ func SVD(a *mat64.Dense, epsilon, small float64, wantu, wantv bool) la.SVDFactor
 		u = nil
 	}
 
-	return la.SVDFactors{u, s, v}
+	return mat64.SVDFactors{u, s, v}
 }
 
 /*func procUplo(uplo blas.Uplo) C.char {
