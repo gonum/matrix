@@ -14,7 +14,7 @@ func (s *S) TestCholesky(c *check.C) {
 		spd bool
 	}{
 		{
-			a: NewDense(3, 3, []float64{
+			a: make_dense(3, 3, []float64{
 				4, 1, 1,
 				1, 2, 3,
 				1, 3, 6,

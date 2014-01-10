@@ -289,8 +289,8 @@ func Inverse(a Matrix) *Dense {
 	for i := 0; i < m*m; i += m + 1 {
 		d[i] = 1
 	}
-	eye := NewDense(m, m, d)
-	return Solve(a, eye)
+	eye := MakeDense(m, m, d)
+	return Solve(a, &eye)
 }
 
 // Solve returns a matrix x that satisfies ax = b.
@@ -365,5 +365,6 @@ const (
 	ErrPivot           = Error("mat64: malformed pivot list")
 	ErrIllegalOrder    = Error("mat64: illegal order")
 	ErrNoEngine        = Error("mat64: no blas engine registered: call Register()")
+    ErrInLength        = Error("mat64: input data has wrong length")
     ErrOutLength       = Error("mat64: output receiver has wrong length")
 )

@@ -17,7 +17,6 @@ import (
 // Tests
 func Test(t *testing.T) { check.TestingT(t) }
 
-type S struct{}
 
 var _ = check.Suite(&S{})
 
@@ -41,14 +40,6 @@ func panics(fn func()) (panicked bool, message string) {
 }
 
 func (s *S) SetUpSuite(c *check.C) { blasEngine = cblas.Blas{} }
-
-func eye() *Dense {
-	return NewDense(3, 3, []float64{
-		1, 0, 0,
-		0, 1, 0,
-		0, 0, 1,
-	})
-}
 
 func (s *S) TestMaybe(c *check.C) {
 	for i, test := range []struct {
@@ -174,7 +165,7 @@ func (s *S) TestNewDense(c *check.C) {
 			}},
 		},
 	} {
-		m := NewDense(test.rows, test.cols, test.a)
+		m := make_dense(test.rows, test.cols, test.a)
 		rows, cols := m.Dims()
 		c.Check(rows, check.Equals, test.rows, check.Commentf("Test %d", i))
 		c.Check(cols, check.Equals, test.cols, check.Commentf("Test %d", i))
@@ -192,7 +183,7 @@ func (s *S) TestRowCol(c *check.C) {
 		{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}, {10, 11, 12}},
 		{{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}},
 	} {
-		a := NewDense(flatten(af))
+		a := flatten2dense(af)
 		for ri, row := range af {
 			c.Check(a.Row(nil, ri), check.DeepEquals, row, check.Commentf("Test %d", i))
 		}
@@ -213,7 +204,7 @@ func (s *S) TestSetRowColumn(c *check.C) {
 		{{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}},
 	} {
 		for ri, row := range as {
-			a := NewDense(flatten(as))
+			a := flatten2dense(as)
 			t := &Dense{}
 			t.Clone(a)
 			a.SetRow(ri, make([]float64, a.mat.Cols))
@@ -222,7 +213,7 @@ func (s *S) TestSetRowColumn(c *check.C) {
 		}
 
 		for ci := range as[0] {
-			a := NewDense(flatten(as))
+			a := flatten2dense(as)
 			t := &Dense{}
 			t.Clone(a)
 			a.SetCol(ci, make([]float64, a.mat.Rows))
@@ -266,9 +257,9 @@ func (s *S) TestAdd(c *check.C) {
 			[][]float64{{2, 4, 6}, {8, 10, 12}},
 		},
 	} {
-		a := NewDense(flatten(test.a))
-		b := NewDense(flatten(test.b))
-		r := NewDense(flatten(test.r))
+		a := flatten2dense(test.a)
+		b := flatten2dense(test.b)
+		r := flatten2dense(test.r)
 
 		temp := &Dense{}
 		temp.Add(a, b)
@@ -320,9 +311,9 @@ func (s *S) TestSub(c *check.C) {
 			[][]float64{{0, 0, 0}, {0, 0, 0}},
 		},
 	} {
-		a := NewDense(flatten(test.a))
-		b := NewDense(flatten(test.b))
-		r := NewDense(flatten(test.r))
+		a := flatten2dense(test.a)
+		b := flatten2dense(test.b)
+		r := flatten2dense(test.r)
 
 		temp := &Dense{}
 		temp.Sub(a, b)
@@ -374,9 +365,9 @@ func (s *S) TestMulElem(c *check.C) {
 			[][]float64{{1, 4, 9}, {16, 25, 36}},
 		},
 	} {
-		a := NewDense(flatten(test.a))
-		b := NewDense(flatten(test.b))
-		r := NewDense(flatten(test.r))
+		a := flatten2dense(test.a)
+		b := flatten2dense(test.b)
+		r := flatten2dense(test.r)
 
 		temp := &Dense{}
 		temp.MulElem(a, b)
@@ -433,9 +424,9 @@ func (s *S) TestMul(c *check.C) {
 			[][]float64{{0, 2, 2}, {0, 2, 2}, {0, 2, 2}},
 		},
 	} {
-		a := NewDense(flatten(test.a))
-		b := NewDense(flatten(test.b))
-		r := NewDense(flatten(test.r))
+		a := flatten2dense(test.a)
+		b := flatten2dense(test.b)
+		r := flatten2dense(test.r)
 
 		temp := &Dense{}
 		temp.Mul(a, b)
@@ -451,25 +442,6 @@ func (s *S) TestMul(c *check.C) {
 		temp.mat.Data = nil
 		c.Check(func() { temp.Mul(a, b) }, check.PanicMatches, "cblas: index of c out of range", check.Commentf("Test %d"))
 	}
-}
-
-func randDense(size int, rho float64, rnd func() float64) (*Dense, error) {
-	if size == 0 {
-		return nil, ErrZeroLength
-	}
-	d := &Dense{BlasMatrix{
-		Order: BlasOrder,
-		Rows:  size, Cols: size, Stride: size,
-		Data: make([]float64, size*size),
-	}}
-	for i := 0; i < size; i++ {
-		for j := 0; j < size; j++ {
-			if rand.Float64() < rho {
-				d.Set(i, j, rnd())
-			}
-		}
-	}
-	return d, nil
 }
 
 func (s *S) TestLU(c *check.C) {
@@ -560,8 +532,8 @@ func (s *S) TestTranspose(c *check.C) {
 			[][]float64{{1, 4}, {2, 5}, {3, 6}},
 		},
 	} {
-		a := NewDense(flatten(test.a))
-		t := NewDense(flatten(test.t))
+		a := flatten2dense(test.a)
+		t := flatten2dense(test.t)
 
 		var r, rr Dense
 
@@ -623,7 +595,7 @@ func (s *S) TestNorm(c *check.C) {
 			norm: 6,
 		},
 	} {
-		a := NewDense(flatten(test.a))
+		a := flatten2dense(test.a)
 		c.Check(a.Norm(test.ord), check.Equals, test.norm, check.Commentf("Test %d: %v norm = %f", i, test.a, test.norm))
 	}
 }
@@ -686,8 +658,8 @@ func (s *S) TestApply(c *check.C) {
 			},
 		},
 	} {
-		a := NewDense(flatten(test.a))
-		t := NewDense(flatten(test.t))
+		a := flatten2dense(test.a)
+		t := flatten2dense(test.t)
 
 		var r Dense
 
@@ -835,8 +807,8 @@ func (s *S) TestSolve(c *check.C) {
 			},
 		},
 	} {
-		a := NewDense(flatten(test.a))
-		b := NewDense(flatten(test.b))
+		a := flatten2dense(test.a)
+		b := flatten2dense(test.b)
 
 		var x *Dense
 
@@ -850,7 +822,7 @@ func (s *S) TestSolve(c *check.C) {
 			continue
 		}
 
-		trueX := NewDense(flatten(test.x))
+		trueX := flatten2dense(test.x)
 		c.Check(x.EqualsApprox(trueX, 1e-13), check.Equals, true, check.Commentf("Test %v solution mismatch: Found %v, expected %v ", test.name, x, trueX))
 	}
 }

@@ -1,10 +1,5 @@
 package mat64
 
-import (
-    "math"
-    "github.com/gonum/floats"
-)
-
 
 func min(a, b int) int {
 	if a < b {
@@ -51,7 +46,7 @@ func use_slice(x []float64, n int, err error) []float64 {
 // and panic if x is non-nil but has wrong shape.
 func use_dense(x *Dense, r, c int, err error) *Dense {
     if x == nil {
-        return NewDense(r, c, nil)
+        return NewDense(r, c)
     }
     m, n := x.Dims()
     if m != r || n != c {
@@ -59,51 +54,3 @@ func use_dense(x *Dense, r, c int, err error) *Dense {
     }
     return x
 }
-
-
-
-func isUpperTriangular(a *Dense) bool {
-	rows, cols := a.Dims()
-	for c := 0; c < cols-1; c++ {
-		for r := c + 1; r < rows; r++ {
-			if math.Abs(a.At(r, c)) > 1e-14 {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-func isOrthogonal(a *Dense) bool {
-	rows, cols := a.Dims()
-	col1 := make([]float64, rows)
-	col2 := make([]float64, rows)
-	for i := 0; i < cols-1; i++ {
-		for j := i + 1; j < cols; j++ {
-			a.Col(col1, i)
-			a.Col(col2, j)
-			dot := floats.Dot(col1, col2)
-			if math.Abs(dot) > 1e-14 {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-
-func flatten(f [][]float64) (r, c int, d []float64) {
-	for _, r := range f {
-		d = append(d, r...)
-	}
-	return len(f), len(f[0]), d
-}
-
-func unflatten(r, c int, d []float64) [][]float64 {
-	m := make([][]float64, r)
-	for i := 0; i < r; i++ {
-		m[i] = d[i*c : (i+1)*c]
-	}
-	return m
-}
-

@@ -62,21 +62,37 @@ type Dense struct {
 	mat BlasMatrix
 }
 
-func NewDense(r, c int, mat []float64) *Dense {
-	if mat != nil && r*c != len(mat) {
-		panic(ErrShape)
-	}
-	if mat == nil {
-		mat = make([]float64, r*c)
-	}
+
+// NewDense creates a Dense of required dimensions
+// and returns the pointer to it.
+func NewDense(r, c int) *Dense {
 	return &Dense{BlasMatrix{
 		Order:  BlasOrder,
 		Rows:   r,
 		Cols:   c,
 		Stride: c,
-		Data:   mat,
+		Data:   make([]float64, r * c),
 	}}
 }
+
+
+
+// MakeDense returns a Dense (not *Dense) that wraps the provided
+// data, the length of which must be compatible with
+// the required dimensions of the Dense.
+func MakeDense(r, c int, data []float64) Dense {
+    if len(data) != r * c {
+        panic(ErrInLength)
+    }
+	return Dense{BlasMatrix{
+		Order:  BlasOrder,
+		Rows:   r,
+		Cols:   c,
+		Stride: c,
+		Data:   data,
+	}}
+}
+
 
 // DenseCopyOf returns a newly allocated copy of the elements of a.
 func DenseCopyOf(a Matrix) *Dense {

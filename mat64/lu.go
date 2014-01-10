@@ -173,7 +173,7 @@ func (f LUFactors) IsSingular() bool {
 func (f LUFactors) L() *Dense {
 	lu := f.LU
 	m, n := lu.Dims()
-	l := NewDense(m, n, nil)
+	l := NewDense(m, n)
 	for i := 0; i < m; i++ {
 		for j := 0; j < n; j++ {
 			if i > j {
@@ -190,7 +190,7 @@ func (f LUFactors) L() *Dense {
 func (f LUFactors) U() *Dense {
 	lu := f.LU
 	m, n := lu.Dims()
-	u := NewDense(m, n, nil)
+	u := NewDense(m, n)
 	for i := 0; i < n; i++ {
 		for j := 0; j < n; j++ {
 			if i <= j {

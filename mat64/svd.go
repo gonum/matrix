@@ -40,10 +40,10 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 	nu := min(m, n)
 	var u, v *Dense
 	if wantu {
-		u = NewDense(m, nu, nil)
+		u = NewDense(m, nu)
 	}
 	if wantv {
-		v = NewDense(n, n, nil)
+		v = NewDense(n, n)
 	}
 
 	var (
@@ -431,7 +431,7 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 // S returns a newly allocated S matrix from the sigma values held by the
 // factorisation.
 func (f SVDFactors) S() *Dense {
-	s := NewDense(len(f.Sigma), len(f.Sigma), nil)
+	s := NewDense(len(f.Sigma), len(f.Sigma))
 	for i, v := range f.Sigma {
 		s.Set(i, i, v)
 	}

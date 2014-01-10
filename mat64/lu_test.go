@@ -19,18 +19,18 @@ func (s *S) TestLUD(c *check.C) {
 		sign  int
 	}{
 		{ // This is a hard coded equivalent of the approach used in the Jama LU test.
-			a: NewDense(3, 3, []float64{
+			a: make_dense(3, 3, []float64{
 				0, 2, 3,
 				4, 5, 6,
 				7, 8, 9,
 			}),
 
-			l: NewDense(3, 3, []float64{
+			l: make_dense(3, 3, []float64{
 				1, 0, 0,
 				0, 1, 0,
 				0.5714285714285714, 0.2142857142857144, 1,
 			}),
-			u: NewDense(3, 3, []float64{
+			u: make_dense(3, 3, []float64{
 				7, 8, 9,
 				0, 2, 3,
 				0, 0, 0.2142857142857144,
@@ -78,18 +78,18 @@ func (s *S) TestLUDGaussian(c *check.C) {
 		sign  int
 	}{
 		{ // This is a hard coded equivalent of the approach used in the Jama LU test.
-			a: NewDense(3, 3, []float64{
+			a: make_dense(3, 3, []float64{
 				0, 2, 3,
 				4, 5, 6,
 				7, 8, 9,
 			}),
 
-			l: NewDense(3, 3, []float64{
+			l: make_dense(3, 3, []float64{
 				1, 0, 0,
 				0, 1, 0,
 				0.5714285714285714, 0.2142857142857144, 1,
 			}),
-			u: NewDense(3, 3, []float64{
+			u: make_dense(3, 3, []float64{
 				7, 8, 9,
 				0, 2, 3,
 				0, 0, 0.2142857142857144,

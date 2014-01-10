@@ -32,13 +32,13 @@ func (s *S) TestQRD(c *check.C) {
 		},
 	} {
 
-		a := NewDense(flatten(test.a))
+		a := flatten2dense(test.a)
 		qf := QR(DenseCopyOf(a))
 		r := qf.R()
 		q := qf.Q()
 
 		rows, cols := a.Dims()
-		newA := NewDense(rows, cols, nil)
+		newA := NewDense(rows, cols)
 		newA.Mul(q, r)
 
 		c.Check(isOrthogonal(q), check.Equals, true, check.Commentf("Test %v: Q not orthogonal", test.name))

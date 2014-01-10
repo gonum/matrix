@@ -21,7 +21,7 @@ func Cholesky(a *Dense) CholeskyFactor {
 	// Initialize.
 	m, n := a.Dims()
 	spd := m == n
-	l := NewDense(n, n, nil)
+	l := NewDense(n, n)
 
 	// Main loop.
 	lRowj := make([]float64, n)
@@ -59,7 +59,7 @@ func CholeskyR(a *Dense) (r *Dense, spd bool) {
 	// Initialize.
 	m, n := a.Dims()
 	spd = m == n
-	r = NewDense(n, n, nil)
+	r = NewDense(n, n)
 
 	// Main loop.
 	for j := 0; j < n; j++ {
