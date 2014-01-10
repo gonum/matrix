@@ -108,6 +108,64 @@ func (m *Dense) Set(r, c int, v float64) {
 
 func (m *Dense) Dims() (r, c int) { return m.mat.Rows, m.mat.Cols }
 
+func (m *Dense) Rows() int { return m.mat.Rows }
+
+func (m *Dense) Cols() int { return m.mat.Cols }
+
+func (m *Dense) Size() int { return m.mat.Rows * m.mat.Cols }
+
+
+// Contiguous reports whether the data of the matrix is stored
+// in a contiguous segment of a slice.
+// The returned value is false if and only if the matrix is
+// the submatrix view of another matrix and has fewer columns
+// than its parent matrix; otherwise, the value is true.
+// If this function returns true, one may subsequently
+// call DataView to get a view of the data slice and work on it directly.
+func (m *Dense) Contiguous() bool { return m.mat.Cols == m.mat.Stride }
+
+
+// DataView returns the slice in the matrix object
+// that holds the data, in row major.
+// Subsequent changes to the returned slice is reflected
+// in the original matrix, and vice versa.
+// This is possible only when Contiguous() is true;
+// if Contiguous() is false, nil is returned.
+func (m *Dense) DataView() []float64 {
+    if m.Contiguous() {
+        return m.mat.Data
+    }
+    return nil
+        // TODO: return nil here or panic?
+}
+
+
+
+// Data copies out all elements of the matrix, row by row.
+// If out is nil, a slice is allocated;
+// otherwise out must have the right length.
+// The copied slice is returned.
+func (m *Dense) Data(out []float64) []float64 {
+    if out == nil {
+        out = make([]float64, m.Size())
+    } else {
+        if len(out) != m.Size() {
+            panic(ErrOutLength)
+        }
+    }
+    if m.Contiguous() {
+        copy(out, m.DataView())
+    } else {
+        r, c := m.Dims()
+        for row, k := 0, 0; row < r; row++ {
+            copy(out[k : k + c], m.RowView(row))
+            k += c
+        }
+    }
+    return out
+}
+
+
 func (m *Dense) Col(col []float64, c int) []float64 {
 	if c >= m.mat.Cols || c < 0 {
 		panic(ErrIndexOutOfRange)
@@ -160,6 +218,13 @@ func (m *Dense) SetRow(r int, v []float64) int {
 
 	return min(len(v), m.mat.Cols)
 }
+
+
+func (m *Dense) RowView(r int) []float64 {
+    k := r * m.mat.Stride
+    return m.mat.Data[k : k + m.mat.Cols]
+}
+
 
 // View returns a view on the receiver.
 func (m *Dense) View(i, j, r, c int) {

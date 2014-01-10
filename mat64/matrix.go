@@ -365,6 +365,7 @@ const (
 	ErrPivot           = Error("mat64: malformed pivot list")
 	ErrIllegalOrder    = Error("mat64: illegal order")
 	ErrNoEngine        = Error("mat64: no blas engine registered: call Register()")
+    ErrOutLength       = Error("mat64: output receiver has wrong length")
 )
 
 func min(a, b int) int {
