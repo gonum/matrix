@@ -42,21 +42,6 @@ func panics(fn func()) (panicked bool, message string) {
 
 func (s *S) SetUpSuite(c *check.C) { blasEngine = cblas.Blas{} }
 
-func flatten(f [][]float64) (r, c int, d []float64) {
-	for _, r := range f {
-		d = append(d, r...)
-	}
-	return len(f), len(f[0]), d
-}
-
-func unflatten(r, c int, d []float64) [][]float64 {
-	m := make([][]float64, r)
-	for i := 0; i < r; i++ {
-		m[i] = d[i*c : (i+1)*c]
-	}
-	return m
-}
-
 func eye() *Dense {
 	return NewDense(3, 3, []float64{
 		1, 0, 0,

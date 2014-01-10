@@ -367,26 +367,3 @@ const (
 	ErrNoEngine        = Error("mat64: no blas engine registered: call Register()")
     ErrOutLength       = Error("mat64: output receiver has wrong length")
 )
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-// use returns a float64 slice with l elements, using f if it
-// has the necessary capacity, otherwise creating a new slice.
-func use(f []float64, l int) []float64 {
-	if l < cap(f) {
-		return f[:l]
-	}
-	return make([]float64, l)
-}
