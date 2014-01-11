@@ -63,7 +63,6 @@ func make_dense(r, c int, data []float64) *Dense {
 }
 
 
-type S struct{}
 
 func eye() *Dense {
 	return make_dense(3, 3, []float64{

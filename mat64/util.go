@@ -1,6 +1,43 @@
 package mat64
 
 
+func add(x, y, out []float64) []float64 {
+    if len(x) != len(y) {
+        panic("input length mismatch")
+    }
+    out = use_slice(out, len(x), ErrOutLength)
+    for i, v := range x {
+        out[i] = v + y[i]
+    }
+    return out
+}
+
+
+
+func fill(x []float64, v float64) {
+    for i := range x {
+        x[i] = v
+    }
+}
+
+
+
+func zero(x []float64) {
+    fill(x, 0.0)
+}
+
+
+/*
+func zero(f []float64) {
+	f[0] = 0
+	for i := 1; i < len(f); {
+		i += copy(f[i:], f[:i])
+	}
+}
+*/
+
+
+
 func min(a, b int) int {
 	if a < b {
 		return a
