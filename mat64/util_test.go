@@ -59,8 +59,7 @@ func flatten2dense(f [][]float64) *Dense {
 
 
 func make_dense(r, c int, data []float64) *Dense {
-    z := MakeDense(r, c, data)
-    return &z
+    return MakeDense(r, c, data)
 }
 
 
