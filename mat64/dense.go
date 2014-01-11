@@ -17,50 +17,6 @@ func Registered() blas.Float64 { return blasEngine }
 
 const BlasOrder = blas.RowMajor
 
-/*
-var (
-	matrix *Dense
-
-	_ Matrix       = matrix
-	_ Mutable      = matrix
-	_ Vectorer     = matrix
-	_ VectorSetter = matrix
-
-	_ Cloner      = matrix
-	_ Viewer      = matrix
-	_ Submatrixer = matrix
-
-	_ Adder     = matrix
-	_ Suber     = matrix
-	_ Muler     = matrix
-	_ Dotter    = matrix
-	_ ElemMuler = matrix
-
-	_ Scaler  = matrix
-	_ Applyer = matrix
-
-	_ TransposeCopier = matrix
-	// _ TransposeViewer = matrix
-
-	_ Tracer = matrix
-	_ Normer = matrix
-	_ Sumer  = matrix
-
-	_ Uer = matrix
-	_ Ler = matrix
-
-	// _ Stacker   = matrix
-	// _ Augmenter = matrix
-
-	_ Equaler       = matrix
-	_ ApproxEqualer = matrix
-
-	_ BlasLoader = matrix
-	_ Blasser    = matrix
-)
-
-*/
-
 
 type Dense struct {
 	mat BlasMatrix
@@ -111,13 +67,6 @@ func (m *Dense) isZero() bool {
 	return m.mat.Cols == 0 || m.mat.Rows == 0
 }
 
-func (m *Dense) At(r, c int) float64 {
-	return m.mat.Data[r*m.mat.Stride+c]
-}
-
-func (m *Dense) Set(r, c int, v float64) {
-	m.mat.Data[r*m.mat.Stride+c] = v
-}
 
 func (m *Dense) Dims() (r, c int) { return m.mat.Rows, m.mat.Cols }
 
@@ -128,6 +77,25 @@ func (m *Dense) Cols() int { return m.mat.Cols }
 func (m *Dense) Size() int { return m.mat.Rows * m.mat.Cols }
 
 
+
+func (m *Dense) validate_row_idx(r int) {
+	if r >= m.mat.Rows || r < 0 {
+		panic(ErrIndexOutOfRange)
+	}
+}
+
+
+
+
+func (m *Dense) validate_col_idx(c int) {
+	if c >= m.mat.Cols || c < 0 {
+		panic(ErrIndexOutOfRange)
+	}
+}
+
+
+
+
 // Contiguous reports whether the data of the matrix is stored
 // in a contiguous segment of a slice.
 // The returned value is false if and only if the matrix is
@@ -136,6 +104,49 @@ func (m *Dense) Size() int { return m.mat.Rows * m.mat.Cols }
 // If this function returns true, one may subsequently
 // call DataView to get a view of the data slice and work on it directly.
 func (m *Dense) Contiguous() bool { return m.mat.Cols == m.mat.Stride }
+
+
+
+
+func (m *Dense) At(r, c int) float64 {
+	return m.mat.Data[r*m.mat.Stride+c]
+}
+
+
+
+
+func (m *Dense) Set(r, c int, v float64) {
+	m.mat.Data[r*m.mat.Stride+c] = v
+}
+
+
+
+
+func (m *Dense) RowView(r int) []float64 {
+    m.validate_row_idx(r)
+    k := r * m.mat.Stride
+    return m.mat.Data[k : k + m.mat.Cols]
+}
+
+
+
+
+func (m *Dense) RowCopy(r int, row []float64) []float64 {
+    row = use_slice(row, m.mat.Cols, ErrOutLength)
+	copy(row, m.RowView(r))
+	return row
+}
+
+
+
+
+func (m *Dense) SetRow(r int, v []float64) {
+    if len(v) != m.mat.Cols {
+        panic(ErrInLength)
+    }
+	copy(m.RowView(r), v)
+}
+
 
 
 // DataView returns the slice in the matrix object
@@ -209,34 +220,6 @@ func (m *Dense) SetCol(c int, v []float64) int {
 	return min(len(v), m.mat.Rows)
 }
 
-func (m *Dense) Row(row []float64, r int) []float64 {
-	if r >= m.mat.Rows || r < 0 {
-		panic(ErrIndexOutOfRange)
-	}
-
-	if row == nil {
-		row = make([]float64, m.mat.Cols)
-	}
-	copy(row, m.mat.Data[r*m.mat.Stride:r*m.mat.Stride+m.mat.Cols])
-
-	return row
-}
-
-func (m *Dense) SetRow(r int, v []float64) int {
-	if r >= m.mat.Rows || r < 0 {
-		panic(ErrIndexOutOfRange)
-	}
-
-	copy(m.mat.Data[r*m.mat.Stride:r*m.mat.Stride+m.mat.Cols], v)
-
-	return min(len(v), m.mat.Cols)
-}
-
-
-func (m *Dense) RowView(r int) []float64 {
-    k := r * m.mat.Stride
-    return m.mat.Data[k : k + m.mat.Cols]
-}
 
 
 // View returns a view on the receiver.
@@ -336,10 +319,9 @@ func (m *Dense) Norm(ord float64) float64 {
 			n = math.Max(math.Abs(s), n)
 		}
 	case math.IsInf(ord, +1):
-		row := make([]float64, m.mat.Cols)
 		for i := 0; i < m.mat.Rows; i++ {
 			var s float64
-			for _, e := range m.Row(row, i) {
+			for _, e := range m.RowView(i) {
 				s += e
 			}
 			n = math.Max(math.Abs(s), n)
@@ -356,10 +338,9 @@ func (m *Dense) Norm(ord float64) float64 {
 		}
 	case math.IsInf(ord, -1):
 		n = math.MaxFloat64
-		row := make([]float64, m.mat.Cols)
 		for i := 0; i < m.mat.Rows; i++ {
 			var s float64
-			for _, e := range m.Row(row, i) {
+			for _, e := range m.RowView(i) {
 				s += e
 			}
 			n = math.Min(math.Abs(s), n)

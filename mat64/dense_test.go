@@ -185,7 +185,7 @@ func (s *S) TestRowCol(c *check.C) {
 	} {
 		a := flatten2dense(af)
 		for ri, row := range af {
-			c.Check(a.Row(nil, ri), check.DeepEquals, row, check.Commentf("Test %d", i))
+			c.Check(a.RowView(ri), check.DeepEquals, row, check.Commentf("Test %d", i))
 		}
 		for ci := range af[0] {
 			col := make([]float64, a.mat.Rows)

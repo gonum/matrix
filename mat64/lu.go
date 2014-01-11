@@ -38,10 +38,7 @@ func LU(a *Dense) LUFactors {
 	}
 	sign := 1
 
-	var (
-		luRowi = make([]float64, n)
-		luColj = make([]float64, m)
-	)
+    luColj := make([]float64, m)
 
 	// Outer loop.
 	for j := 0; j < n; j++ {
@@ -53,7 +50,7 @@ func LU(a *Dense) LUFactors {
 
 		// Apply previous transformations.
 		for i := 0; i < m; i++ {
-			lu.Row(luRowi, i)
+            luRowi := lu.RowView(i)
 
 			// Most of the time is spent in the following dot product.
 			kmax := min(i, j)
@@ -64,8 +61,6 @@ func LU(a *Dense) LUFactors {
 
 			luColj[i] -= s
 			luRowi[j] = luColj[i]
-
-			lu.SetRow(i, luRowi)
 		}
 
 		// Find pivot and exchange if necessary.
@@ -262,14 +257,12 @@ func pivotRows(a *Dense, piv []int) *Dense {
 	visit := make([]bool, len(piv))
 	_, n := a.Dims()
 	fromRow := make([]float64, n)
-	toRow := make([]float64, n)
 	for to, from := range piv {
 		for to != from && !visit[from] {
 			visit[from], visit[to] = true, true
-			a.Row(fromRow, from)
-			a.Row(toRow, to)
-			a.SetRow(from, toRow)
-			a.SetRow(to, fromRow)
+			a.RowCopy(from, fromRow)
+            copy(a.RowView(from), a.RowView(to))
+            copy(a.RowView(to), fromRow)
 			to, from = from, piv[from]
 		}
 	}

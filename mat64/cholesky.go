@@ -24,14 +24,12 @@ func Cholesky(a *Dense) CholeskyFactor {
 	l := NewDense(n, n)
 
 	// Main loop.
-	lRowj := make([]float64, n)
-	lRowk := make([]float64, n)
 	for j := 0; j < n; j++ {
 		var d float64
-		l.Row(lRowj, j)
+        lRowj := l.RowView(j)
 		for k := 0; k < j; k++ {
 			var s float64
-			l.Row(lRowk, k)
+            lRowk := l.RowView(k)
 			for i := 0; i < k; i++ {
 				s += lRowk[i] * lRowj[i]
 			}
@@ -40,7 +38,6 @@ func Cholesky(a *Dense) CholeskyFactor {
 			d += s * s
 			spd = spd && a.At(k, j) == a.At(j, k)
 		}
-		l.SetRow(j, lRowj)
 		d = a.At(j, j) - d
 		spd = spd && d > 0
 		l.Set(j, j, math.Sqrt(math.Max(d, 0)))
