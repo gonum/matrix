@@ -148,6 +148,39 @@ func (m *Dense) SetRow(r int, v []float64) {
 
 
 
+
+func (m *Dense) ColCopy(c int, col []float64) []float64 {
+    m.validate_col_idx(c)
+    col = use_slice(col, m.mat.Rows, ErrOutLength)
+
+	if blasEngine == nil {
+		panic(ErrNoEngine)
+	}
+	blasEngine.Dcopy(m.mat.Rows, m.mat.Data[c:], m.mat.Stride, col, 1)
+
+	return col
+}
+
+
+
+
+func (m *Dense) SetCol(c int, v []float64) {
+    m.validate_col_idx(c)
+
+    if len(v) != m.mat.Rows {
+        panic(ErrInLength)
+    }
+
+	if blasEngine == nil {
+		panic(ErrNoEngine)
+	}
+	blasEngine.Dcopy(m.mat.Rows, v, 1, m.mat.Data[c:], m.mat.Stride)
+}
+
+
+
+
+
 // DataView returns the slice in the matrix object
 // that holds the data, in row major.
 // Subsequent changes to the returned slice is reflected
@@ -189,37 +222,6 @@ func (m *Dense) Data(out []float64) []float64 {
 }
 
 
-func (m *Dense) Col(col []float64, c int) []float64 {
-	if c >= m.mat.Cols || c < 0 {
-		panic(ErrIndexOutOfRange)
-	}
-
-	if col == nil {
-		col = make([]float64, m.mat.Rows)
-	}
-	col = col[:min(len(col), m.mat.Rows)]
-	if blasEngine == nil {
-		panic(ErrNoEngine)
-	}
-	blasEngine.Dcopy(len(col), m.mat.Data[c:], m.mat.Stride, col, 1)
-
-	return col
-}
-
-func (m *Dense) SetCol(c int, v []float64) int {
-	if c >= m.mat.Cols || c < 0 {
-		panic(ErrIndexOutOfRange)
-	}
-
-	if blasEngine == nil {
-		panic(ErrNoEngine)
-	}
-	blasEngine.Dcopy(min(len(v), m.mat.Rows), v, 1, m.mat.Data[c:], m.mat.Stride)
-
-	return min(len(v), m.mat.Rows)
-}
-
-
 
 // View returns a view on the receiver.
 func (m *Dense) View(i, j, r, c int) {
@@ -236,6 +238,22 @@ func (m *Dense) Submatrix(a Matrix, i, j, r, c int) {
 	m.Clone(&Dense{v.BlasMatrix()})
 }
 */
+
+
+
+func (m *Dense) Fill(v float64) {
+    if m.Contiguous() {
+        fill(m.mat.Data, v)
+        return
+    }
+    for row := 0; row < m.mat.Rows; row++ {
+        fill(m.RowView(row), v)
+    }
+}
+
+
+
+
 
 func (m *Dense) Clone(a *Dense) {
 	r, c := a.Dims()
@@ -310,7 +328,7 @@ func (m *Dense) Norm(ord float64) float64 {
 		col := make([]float64, m.mat.Rows)
 		for i := 0; i < m.mat.Cols; i++ {
 			var s float64
-			for _, e := range m.Col(col, i) {
+			for _, e := range m.ColCopy(i, col) {
 				s += e
 			}
 			n = math.Max(math.Abs(s), n)
@@ -328,7 +346,7 @@ func (m *Dense) Norm(ord float64) float64 {
 		col := make([]float64, m.mat.Rows)
 		for i := 0; i < m.mat.Cols; i++ {
 			var s float64
-			for _, e := range m.Col(col, i) {
+			for _, e := range m.ColCopy(i, col) {
 				s += e
 			}
 			n = math.Min(math.Abs(s), n)

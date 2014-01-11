@@ -193,7 +193,7 @@ func (s *S) TestRowCol(c *check.C) {
 			for j := range col {
 				col[j] = float64(ci + 1 + j*a.mat.Cols)
 			}
-			c.Check(a.Col(nil, ci), check.DeepEquals, col, check.Commentf("Test %d", i))
+			c.Check(a.ColCopy(ci, nil), check.DeepEquals, col, check.Commentf("Test %d", i))
 		}
 	}
 }

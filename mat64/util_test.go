@@ -25,8 +25,8 @@ func isOrthogonal(a *Dense) bool {
 	col2 := make([]float64, rows)
 	for i := 0; i < cols-1; i++ {
 		for j := i + 1; j < cols; j++ {
-			a.Col(col1, i)
-			a.Col(col2, j)
+			a.ColCopy(i, col1)
+			a.ColCopy(j, col2)
 			dot := floats.Dot(col1, col2)
 			if math.Abs(dot) > 1e-14 {
 				return false
