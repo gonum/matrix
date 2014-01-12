@@ -19,18 +19,18 @@ func (s *S) TestLUD(c *check.C) {
 		sign  int
 	}{
 		{ // This is a hard coded equivalent of the approach used in the Jama LU test.
-			a: NewDense(3, 3, []float64{
+			a: make_dense(3, 3, []float64{
 				0, 2, 3,
 				4, 5, 6,
 				7, 8, 9,
 			}),
 
-			l: NewDense(3, 3, []float64{
+			l: make_dense(3, 3, []float64{
 				1, 0, 0,
 				0, 1, 0,
 				0.5714285714285714, 0.2142857142857144, 1,
 			}),
-			u: NewDense(3, 3, []float64{
+			u: make_dense(3, 3, []float64{
 				7, 8, 9,
 				0, 2, 3,
 				0, 0, 0.2142857142857144,
@@ -43,7 +43,7 @@ func (s *S) TestLUD(c *check.C) {
 			sign: 1,
 		},
 	} {
-		lf := LU(DenseCopyOf(t.a))
+		lf := LU(Clone(t.a))
 		if t.pivot != nil {
 			c.Check(lf.Pivot, check.DeepEquals, t.pivot)
 			c.Check(lf.Sign, check.Equals, t.sign)
@@ -58,12 +58,12 @@ func (s *S) TestLUD(c *check.C) {
 			c.Check(u.Equals(t.u), check.Equals, true)
 		}
 
-		l.Mul(l, u)
-		c.Check(l.EqualsApprox(pivotRows(DenseCopyOf(t.a), lf.Pivot), 1e-12), check.Equals, true)
+		l = Mult(l, u, nil)
+		c.Check(l.EqualsApprox(pivotRows(Clone(t.a), lf.Pivot), 1e-12), check.Equals, true)
 
-		x := lf.Solve(eye())
-		t.a.Mul(t.a, x)
-		c.Check(t.a.EqualsApprox(eye(), 1e-12), check.Equals, true)
+		x := lf.Solve(eye(3))
+		t.a = Mult(t.a, x, nil)
+		c.Check(t.a.EqualsApprox(eye(3), 1e-12), check.Equals, true)
 	}
 }
 
@@ -78,18 +78,18 @@ func (s *S) TestLUDGaussian(c *check.C) {
 		sign  int
 	}{
 		{ // This is a hard coded equivalent of the approach used in the Jama LU test.
-			a: NewDense(3, 3, []float64{
+			a: make_dense(3, 3, []float64{
 				0, 2, 3,
 				4, 5, 6,
 				7, 8, 9,
 			}),
 
-			l: NewDense(3, 3, []float64{
+			l: make_dense(3, 3, []float64{
 				1, 0, 0,
 				0, 1, 0,
 				0.5714285714285714, 0.2142857142857144, 1,
 			}),
-			u: NewDense(3, 3, []float64{
+			u: make_dense(3, 3, []float64{
 				7, 8, 9,
 				0, 2, 3,
 				0, 0, 0.2142857142857144,
@@ -102,7 +102,7 @@ func (s *S) TestLUDGaussian(c *check.C) {
 			sign: 1,
 		},
 	} {
-		lf := LUGaussian(DenseCopyOf(t.a))
+		lf := LUGaussian(Clone(t.a))
 		if t.pivot != nil {
 			c.Check(lf.Pivot, check.DeepEquals, t.pivot)
 			c.Check(lf.Sign, check.Equals, t.sign)
@@ -117,15 +117,15 @@ func (s *S) TestLUDGaussian(c *check.C) {
 			c.Check(u.Equals(t.u), check.Equals, true)
 		}
 
-		l.Mul(l, u)
-		c.Check(l.EqualsApprox(pivotRows(DenseCopyOf(t.a), lf.Pivot), 1e-12), check.Equals, true)
+		l = Mult(l, u, nil)
+		c.Check(l.EqualsApprox(pivotRows(Clone(t.a), lf.Pivot), 1e-12), check.Equals, true)
 
-		aInv := Inverse(t.a)
-		aInv.Mul(aInv, t.a)
-		c.Check(aInv.EqualsApprox(eye(), 1e-12), check.Equals, true)
+		aInv := Inv(t.a, nil)
+		aInv = Mult(aInv, t.a, nil)
+		c.Check(aInv.EqualsApprox(eye(3), 1e-12), check.Equals, true)
 
-		x := lf.Solve(eye())
-		t.a.Mul(t.a, x)
-		c.Check(t.a.EqualsApprox(eye(), 1e-12), check.Equals, true)
+		x := lf.Solve(eye(3))
+		t.a = Mult(t.a, x, nil)
+		c.Check(t.a.EqualsApprox(eye(3), 1e-12), check.Equals, true)
 	}
 }

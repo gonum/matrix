@@ -15,251 +15,445 @@ func Register(b blas.Float64) { blasEngine = b }
 
 func Registered() blas.Float64 { return blasEngine }
 
+// This package uses row-major storage.
+// Every operation is affected by it.
+// Do not change it.
 const BlasOrder = blas.RowMajor
 
-var (
-	matrix *Dense
-
-	_ Matrix       = matrix
-	_ Mutable      = matrix
-	_ Vectorer     = matrix
-	_ VectorSetter = matrix
-
-	_ Cloner      = matrix
-	_ Viewer      = matrix
-	_ Submatrixer = matrix
-
-	_ Adder     = matrix
-	_ Suber     = matrix
-	_ Muler     = matrix
-	_ Dotter    = matrix
-	_ ElemMuler = matrix
-
-	_ Scaler  = matrix
-	_ Applyer = matrix
-
-	_ TransposeCopier = matrix
-	// _ TransposeViewer = matrix
-
-	_ Tracer = matrix
-	_ Normer = matrix
-	_ Sumer  = matrix
-
-	_ Uer = matrix
-	_ Ler = matrix
-
-	// _ Stacker   = matrix
-	// _ Augmenter = matrix
-
-	_ Equaler       = matrix
-	_ ApproxEqualer = matrix
-
-	_ BlasLoader = matrix
-	_ Blasser    = matrix
-)
-
 type Dense struct {
-	mat BlasMatrix
+	rows, cols, stride int
+	data               []float64
 }
 
-func NewDense(r, c int, mat []float64) *Dense {
-	if mat != nil && r*c != len(mat) {
-		panic(ErrShape)
+// NewDense creates a Dense of required dimensions
+// and returns the pointer to it.
+func NewDense(r, c int) *Dense {
+	return &Dense{
+		rows:   r,
+		cols:   c,
+		stride: c,
+		data:   make([]float64, r*c),
 	}
-	if mat == nil {
-		mat = make([]float64, r*c)
+}
+
+func (m *Dense) LoadData(data []float64, r, c int) {
+	if len(data) != r*c {
+		panic(ErrInLength)
 	}
-	return &Dense{BlasMatrix{
-		Order:  BlasOrder,
-		Rows:   r,
-		Cols:   c,
-		Stride: c,
-		Data:   mat,
-	}}
+	m.rows = r
+	m.cols = c
+	m.stride = c
+	m.data = data
 }
-
-// DenseCopyOf returns a newly allocated copy of the elements of a.
-func DenseCopyOf(a Matrix) *Dense {
-	d := &Dense{}
-	d.Clone(a)
-	return d
-}
-
-func (m *Dense) LoadBlas(b BlasMatrix) {
-	if b.Order != BlasOrder {
-		panic(ErrIllegalOrder)
-	}
-	m.mat = b
-}
-
-func (m *Dense) BlasMatrix() BlasMatrix { return m.mat }
 
 func (m *Dense) isZero() bool {
-	return m.mat.Cols == 0 || m.mat.Rows == 0
+	return m.cols == 0 || m.rows == 0
 }
 
-func (m *Dense) At(r, c int) float64 {
-	return m.mat.Data[r*m.mat.Stride+c]
+func (m *Dense) Dims() (r, c int) { return m.rows, m.cols }
+
+func (m *Dense) Rows() int { return m.rows }
+
+func (m *Dense) Cols() int { return m.cols }
+
+func (m *Dense) validate_row_idx(r int) {
+	if r >= m.rows || r < 0 {
+		panic(ErrIndexOutOfRange)
+	}
+}
+
+func (m *Dense) validate_col_idx(c int) {
+	if c >= m.cols || c < 0 {
+		panic(ErrIndexOutOfRange)
+	}
+}
+
+// Contiguous reports whether the data of the matrix is stored
+// in a contiguous segment of a slice.
+// The returned value is false if and only if the matrix is
+// the submatrix view of another matrix and has fewer columns
+// than its parent matrix; otherwise, the value is true.
+// If this function returns true, one may subsequently
+// call DataView to get a view of the data slice and work on it directly.
+func (m *Dense) Contiguous() bool { return m.cols == m.stride }
+
+func (m *Dense) Get(r, c int) float64 {
+	return m.data[r*m.stride+c]
 }
 
 func (m *Dense) Set(r, c int, v float64) {
-	m.mat.Data[r*m.mat.Stride+c] = v
+	m.data[r*m.stride+c] = v
 }
 
-func (m *Dense) Dims() (r, c int) { return m.mat.Rows, m.mat.Cols }
+func (m *Dense) RowView(r int) []float64 {
+	m.validate_row_idx(r)
+	k := r * m.stride
+	return m.data[k : k+m.cols]
+}
 
-func (m *Dense) Col(col []float64, c int) []float64 {
-	if c >= m.mat.Cols || c < 0 {
-		panic(ErrIndexOutOfRange)
-	}
+func (m *Dense) GetRow(r int, row []float64) []float64 {
+	row = use_slice(row, m.cols, ErrOutLength)
+	copy(row, m.RowView(r))
+	return row
+}
 
-	if col == nil {
-		col = make([]float64, m.mat.Rows)
+func (m *Dense) SetRow(r int, v []float64) {
+	if len(v) != m.cols {
+		panic(ErrInLength)
 	}
-	col = col[:min(len(col), m.mat.Rows)]
+	copy(m.RowView(r), v)
+}
+
+// ColView
+// There is no ColView b/c of row-major.
+
+func (m *Dense) GetCol(c int, col []float64) []float64 {
+	m.validate_col_idx(c)
+	col = use_slice(col, m.rows, ErrOutLength)
+
 	if blasEngine == nil {
 		panic(ErrNoEngine)
 	}
-	blasEngine.Dcopy(len(col), m.mat.Data[c:], m.mat.Stride, col, 1)
+	blasEngine.Dcopy(m.rows, m.data[c:], m.stride, col, 1)
 
 	return col
 }
 
-func (m *Dense) SetCol(c int, v []float64) int {
-	if c >= m.mat.Cols || c < 0 {
-		panic(ErrIndexOutOfRange)
+func (m *Dense) SetCol(c int, v []float64) {
+	m.validate_col_idx(c)
+
+	if len(v) != m.rows {
+		panic(ErrInLength)
 	}
 
 	if blasEngine == nil {
 		panic(ErrNoEngine)
 	}
-	blasEngine.Dcopy(min(len(v), m.mat.Rows), v, 1, m.mat.Data[c:], m.mat.Stride)
-
-	return min(len(v), m.mat.Rows)
+	blasEngine.Dcopy(m.rows, v, 1, m.data[c:], m.stride)
 }
 
-func (m *Dense) Row(row []float64, r int) []float64 {
-	if r >= m.mat.Rows || r < 0 {
+func (m *Dense) SubmatrixView(i, j, r, c int) *Dense {
+	if i < 0 || i >= m.rows || r <= 0 || i+r > m.rows {
+		panic(ErrIndexOutOfRange)
+	}
+	if j < 0 || j >= m.cols || c <= 0 || j+c > m.cols {
 		panic(ErrIndexOutOfRange)
 	}
 
-	if row == nil {
-		row = make([]float64, m.mat.Cols)
-	}
-	copy(row, m.mat.Data[r*m.mat.Stride:r*m.mat.Stride+m.mat.Cols])
-
-	return row
+	out := Dense{}
+	out.rows = r
+	out.cols = c
+	out.stride = m.stride
+	out.data = m.data[i*m.stride+j : (i+r-1)*m.stride+(j+c)]
+	return &out
 }
 
-func (m *Dense) SetRow(r int, v []float64) int {
-	if r >= m.mat.Rows || r < 0 {
-		panic(ErrIndexOutOfRange)
-	}
-
-	copy(m.mat.Data[r*m.mat.Stride:r*m.mat.Stride+m.mat.Cols], v)
-
-	return min(len(v), m.mat.Cols)
+func (m *Dense) GetSubmatrix(i, j, r, c int, out *Dense) *Dense {
+	out = use_dense(out, r, c, ErrOutShape)
+	Copy(out, m.SubmatrixView(i, j, r, c))
+	return out
 }
 
-// View returns a view on the receiver.
-func (m *Dense) View(i, j, r, c int) {
-	m.mat.Data = m.mat.Data[i*m.mat.Stride+j : (i+r-1)*m.mat.Stride+(j+c)]
-	m.mat.Rows = r
-	m.mat.Cols = c
+func (m *Dense) SetSubmatrix(i, j, r, c int, v []float64) {
+	m.SubmatrixView(i, j, r, c).SetData(v)
 }
 
-func (m *Dense) Submatrix(a Matrix, i, j, r, c int) {
-	// This is probably a bad idea, but for the moment, we do it.
-	v := *m
-	v.View(i, j, r, c)
-	m.Clone(&Dense{v.BlasMatrix()})
+// DataView returns the slice in the matrix object
+// that holds the data, in row major.
+// Subsequent changes to the returned slice is reflected
+// in the original matrix, and vice versa.
+// This is possible only when Contiguous() is true;
+// if Contiguous() is false, nil is returned.
+func (m *Dense) DataView() []float64 {
+	if m.Contiguous() {
+		return m.data
+	}
+	return nil
+	// TODO: return nil here or panic?
 }
 
-func (m *Dense) Clone(a Matrix) {
-	r, c := a.Dims()
-	m.mat = BlasMatrix{
-		Order: BlasOrder,
-		Rows:  r,
-		Cols:  c,
+// GetData copies out all elements of the matrix, row by row.
+// If out is nil, a slice is allocated;
+// otherwise out must have the right length.
+// The copied slice is returned.
+func (m *Dense) GetData(out []float64) []float64 {
+	out = use_slice(out, m.rows*m.cols, ErrOutLength)
+	if m.Contiguous() {
+		copy(out, m.DataView())
+	} else {
+		r, c := m.rows, m.cols
+		for row, k := 0, 0; row < r; row++ {
+			copy(out[k:k+c], m.RowView(row))
+			k += c
+		}
 	}
-	data := make([]float64, r*c)
-	switch a := a.(type) {
-	case Blasser:
-		amat := a.BlasMatrix()
-		for i := 0; i < r; i++ {
-			copy(data[i*c:(i+1)*c], amat.Data[i*amat.Stride:i*amat.Stride+c])
-		}
-		m.mat.Stride = c
-		m.mat.Data = data
-	case Vectorer:
-		for i := 0; i < r; i++ {
-			a.Row(data[i*c:(i+1)*c], i)
-		}
-		m.mat.Stride = c
-		m.mat.Data = data
-	default:
-		m.mat.Data = data
-		for i := 0; i < r; i++ {
-			for j := 0; j < c; j++ {
-				m.Set(i, j, a.At(i, j))
-			}
+	return out
+}
+
+// SetData copies the values of v into the matrix.
+// Values in v are supposed to be in row major, that is,
+// values for the first row of the matrix, followed by
+// values for the second row, and so on.
+// Length of v must be equal to the total number of elements in the
+// matrix.
+func (m *Dense) SetData(v []float64) {
+	r, c := m.rows, m.cols
+	if len(v) != r*c {
+		panic(ErrInLength)
+	}
+	if m.Contiguous() {
+		copy(m.DataView(), v)
+	} else {
+		for k, row := 0, 0; row < r; row++ {
+			copy(m.RowView(row), v[k:k+c])
+			k += c
 		}
 	}
 }
 
-func (m *Dense) Copy(a Matrix) (r, c int) {
-	r, c = a.Dims()
-	r = min(r, m.mat.Rows)
-	c = min(c, m.mat.Cols)
+func (m *Dense) GetDiag(out []float64) []float64 {
+	if m.rows != m.cols {
+		panic(ErrSquare)
+	}
+	out = use_slice(out, m.rows, ErrOutLength)
+	for i, j := 0, 0; i < m.rows; i += m.stride + 1 {
+		out[j] = m.data[i]
+		j++
+	}
+	return out
+}
 
-	switch a := a.(type) {
-	case Blasser:
-		amat := a.BlasMatrix()
-		for i := 0; i < r; i++ {
-			copy(m.mat.Data[i*m.mat.Stride:i*m.mat.Stride+c], amat.Data[i*amat.Stride:i*amat.Stride+c])
-		}
-	case Vectorer:
-		for i := 0; i < r; i++ {
-			a.Row(m.mat.Data[i*m.mat.Stride:i*m.mat.Stride+c], i)
-		}
-	default:
-		for i := 0; i < r; i++ {
-			for j := 0; j < c; j++ {
-				m.Set(r, c, a.At(r, c))
-			}
+func (m *Dense) SetDiag(v []float64) {
+	if m.rows != m.cols {
+		panic(ErrSquare)
+	}
+	if len(v) != m.rows {
+		panic(ErrInLength)
+	}
+	for i, j := 0, 0; i < m.rows; i += m.stride + 1 {
+		m.data[i] = v[j]
+		j++
+	}
+}
+
+func (m *Dense) FillDiag(v float64) {
+	if m.rows != m.cols {
+		panic(ErrSquare)
+	}
+	for row, k := 0, 0; row < m.rows; row++ {
+		m.data[k] = v
+		k += m.stride + 1
+	}
+}
+
+func (m *Dense) Fill(v float64) {
+	element_wise_unary(m, v, m, fill)
+}
+
+func Copy(dest *Dense, src *Dense) {
+	if dest.rows != src.rows || dest.cols != src.cols {
+		panic(ErrShape)
+	}
+	if dest.Contiguous() && src.Contiguous() {
+		copy(dest.DataView(), src.DataView())
+	} else {
+		for row := 0; row < src.rows; row++ {
+			copy(dest.RowView(row), src.RowView(row))
 		}
 	}
+}
 
-	return r, c
+// Clone creates a new Dense and copies the elements of src into it.
+// The new Dense is returned.
+// Note that while src could be a submatrix of a larger matrix,
+// the cloned matrix is always freshly allocated and is its own
+// entirety.
+func Clone(src *Dense) *Dense {
+	out := NewDense(src.rows, src.cols)
+	Copy(out, src)
+	return out
+}
+
+func element_wise_unary(a *Dense, val float64, out *Dense,
+	f func(a []float64, val float64, out []float64) []float64) *Dense {
+
+	out = use_dense(out, a.rows, a.cols, ErrOutShape)
+	if a.Contiguous() && out.Contiguous() {
+		f(a.DataView(), val, out.DataView())
+		return out
+	}
+	for row := 0; row < a.rows; row++ {
+		f(a.RowView(row), val, out.RowView(row))
+	}
+	return out
+}
+
+func Shift(m *Dense, v float64, out *Dense) *Dense {
+	return element_wise_unary(m, v, out, shift)
+}
+
+func (m *Dense) Shift(v float64) {
+	Shift(m, v, m)
+}
+
+func Scale(m *Dense, v float64, out *Dense) *Dense {
+	return element_wise_unary(m, v, out, scale)
+}
+
+func (m *Dense) Scale(v float64) {
+	Scale(m, v, m)
+}
+
+func element_wise_binary(a, b, out *Dense,
+	f func(a, b, out []float64) []float64) *Dense {
+
+	if a.rows != b.rows || a.cols != b.cols {
+		panic(ErrShape)
+	}
+	out = use_dense(out, a.rows, a.cols, ErrOutShape)
+	if a.Contiguous() && b.Contiguous() && out.Contiguous() {
+		f(a.DataView(), b.DataView(), out.DataView())
+		return out
+	}
+	for row := 0; row < a.rows; row++ {
+		f(a.RowView(row), b.RowView(row), out.RowView(row))
+	}
+	return out
+}
+
+func Add(a, b, out *Dense) *Dense {
+	return element_wise_binary(a, b, out, add)
+}
+
+func (m *Dense) Add(X *Dense) {
+	Add(m, X, m)
+}
+
+func AddScaled(a, b *Dense, s float64, out *Dense) *Dense {
+	if a.rows != b.rows || a.cols != b.cols {
+		panic(ErrShape)
+	}
+	out = use_dense(out, a.rows, a.cols, ErrOutShape)
+	if a.Contiguous() && b.Contiguous() && out.Contiguous() {
+		add_scaled(a.DataView(), b.DataView(), s, out.DataView())
+		return out
+	}
+	for row := 0; row < a.rows; row++ {
+		add_scaled(a.RowView(row), b.RowView(row), s, out.RowView(row))
+	}
+	return out
+}
+
+func (m *Dense) AddScaled(X *Dense, s float64) {
+	AddScaled(m, X, s, m)
+}
+
+func Subtract(a, b, out *Dense) *Dense {
+	return element_wise_binary(a, b, out, subtract)
+}
+
+func (m *Dense) Subtract(X *Dense) {
+	Subtract(m, X, m)
+}
+
+func Elemult(a, b, out *Dense) *Dense {
+	return element_wise_binary(a, b, out, multiply)
+}
+
+func (m *Dense) Elemult(X *Dense) {
+	Elemult(m, X, m)
+}
+
+func Mult(a, b, out *Dense) *Dense {
+	ar, ac := a.Dims()
+	br, bc := b.Dims()
+
+	if ac != br {
+		panic(ErrShape)
+	}
+
+	out = use_dense(out, ar, bc, ErrOutShape)
+
+	if blasEngine == nil {
+		panic(ErrNoEngine)
+	}
+	blasEngine.Dgemm(
+		BlasOrder,
+		blas.NoTrans, blas.NoTrans,
+		ar, bc, ac,
+		1.,
+		a.data, a.stride,
+		b.data, b.stride,
+		0.,
+		out.data, out.stride)
+
+	return out
+}
+
+func Dot(a, b *Dense) float64 {
+	if a.rows != b.rows || a.cols != b.cols {
+		panic(ErrShape)
+	}
+	if a.Contiguous() && b.Contiguous() {
+		return dot(a.DataView(), b.DataView())
+	}
+	d := 0.0
+	for row := 0; row < a.rows; row++ {
+		d += dot(a.RowView(row), b.RowView(row))
+	}
+	return d
+}
+
+func (m *Dense) Dot(b *Dense) float64 {
+	return Dot(m, b)
 }
 
 func (m *Dense) Min() float64 {
-	min := m.mat.Data[0]
-	for k := 0; k < m.mat.Rows; k++ {
-		for _, v := range m.mat.Data[k*m.mat.Stride : k*m.mat.Stride+m.mat.Cols] {
-			min = math.Min(min, v)
+	if m.Contiguous() {
+		return min(m.DataView())
+	}
+	v := min(m.RowView(0))
+	for row := 1; row < m.rows; row++ {
+		z := min(m.RowView(row))
+		if z < v {
+			v = z
 		}
 	}
-	return min
+	return v
 }
 
 func (m *Dense) Max() float64 {
-	max := m.mat.Data[0]
-	for k := 0; k < m.mat.Rows; k++ {
-		for _, v := range m.mat.Data[k*m.mat.Stride : k*m.mat.Stride+m.mat.Cols] {
-			max = math.Max(max, v)
+	if m.Contiguous() {
+		return max(m.DataView())
+	}
+	v := max(m.RowView(0))
+	for row := 1; row < m.rows; row++ {
+		z := max(m.RowView(row))
+		if z > v {
+			v = z
 		}
 	}
-	return max
+	return v
+}
+
+func (m *Dense) Sum() float64 {
+	if m.Contiguous() {
+		return sum(m.DataView())
+	}
+	v := 0.0
+	for row := 0; row < m.rows; row++ {
+		v += sum(m.RowView(row))
+	}
+	return v
 }
 
 func (m *Dense) Trace() float64 {
-	if m.mat.Rows != m.mat.Cols {
+	if m.rows != m.cols {
 		panic(ErrSquare)
 	}
 	var t float64
-	for i := 0; i < len(m.mat.Data); i += m.mat.Stride + 1 {
-		t += m.mat.Data[i]
+	for i, n := 0, m.rows*m.cols; i < n; i += m.stride + 1 {
+		t += m.data[i]
 	}
 	return t
 }
@@ -276,46 +470,44 @@ func (m *Dense) Norm(ord float64) float64 {
 	var n float64
 	switch {
 	case ord == 1:
-		col := make([]float64, m.mat.Rows)
-		for i := 0; i < m.mat.Cols; i++ {
+		col := make([]float64, m.rows)
+		for i := 0; i < m.cols; i++ {
 			var s float64
-			for _, e := range m.Col(col, i) {
+			for _, e := range m.GetCol(i, col) {
 				s += e
 			}
 			n = math.Max(math.Abs(s), n)
 		}
 	case math.IsInf(ord, +1):
-		row := make([]float64, m.mat.Cols)
-		for i := 0; i < m.mat.Rows; i++ {
+		for i := 0; i < m.rows; i++ {
 			var s float64
-			for _, e := range m.Row(row, i) {
+			for _, e := range m.RowView(i) {
 				s += e
 			}
 			n = math.Max(math.Abs(s), n)
 		}
 	case ord == -1:
 		n = math.MaxFloat64
-		col := make([]float64, m.mat.Rows)
-		for i := 0; i < m.mat.Cols; i++ {
+		col := make([]float64, m.rows)
+		for i := 0; i < m.cols; i++ {
 			var s float64
-			for _, e := range m.Col(col, i) {
+			for _, e := range m.GetCol(i, col) {
 				s += e
 			}
 			n = math.Min(math.Abs(s), n)
 		}
 	case math.IsInf(ord, -1):
 		n = math.MaxFloat64
-		row := make([]float64, m.mat.Cols)
-		for i := 0; i < m.mat.Rows; i++ {
+		for i := 0; i < m.rows; i++ {
 			var s float64
-			for _, e := range m.Row(row, i) {
+			for _, e := range m.RowView(i) {
 				s += e
 			}
 			n = math.Min(math.Abs(s), n)
 		}
 	case ord == 0:
-		for i := 0; i < len(m.mat.Data); i += m.mat.Stride {
-			for _, v := range m.mat.Data[i : i+m.mat.Cols] {
+		for i := 0; i < len(m.data); i += m.stride {
+			for _, v := range m.data[i : i+m.cols] {
 				n += v * v
 			}
 		}
@@ -333,380 +525,40 @@ func (m *Dense) Norm(ord float64) float64 {
 	return n
 }
 
-func (m *Dense) Add(a, b Matrix) {
-	ar, ac := a.Dims()
-	br, bc := b.Dims()
+// Function f takes a row/column index and element value
+// and returns some function of that tuple.
+func Apply(
+	m *Dense,
+	f func(r, c int, v float64) float64,
+	out *Dense) *Dense {
 
-	if ar != br || ac != bc {
-		panic(ErrShape)
-	}
-
-	if m.isZero() {
-		m.mat = BlasMatrix{
-			Order:  BlasOrder,
-			Rows:   ar,
-			Cols:   ac,
-			Stride: ac,
-			Data:   use(m.mat.Data, ar*ac),
-		}
-	} else if ar != m.mat.Rows || ac != m.mat.Cols {
-		panic(ErrShape)
-	}
-
-	if a, ok := a.(Blasser); ok {
-		if b, ok := b.(Blasser); ok {
-			amat, bmat := a.BlasMatrix(), b.BlasMatrix()
-			for ja, jb, jm := 0, 0, 0; ja < ar*amat.Stride; ja, jb, jm = ja+amat.Stride, jb+bmat.Stride, jm+m.mat.Stride {
-				for i, v := range amat.Data[ja : ja+ac] {
-					m.mat.Data[i+jm] = v + bmat.Data[i+jb]
-				}
-			}
-			return
+	out = use_dense(out, m.rows, m.cols, ErrOutShape)
+	for row := 0; row < m.rows; row++ {
+		in_row := m.RowView(row)
+		out_row := out.RowView(row)
+		for col, z := range in_row {
+			out_row[col] = f(row, col, z)
 		}
 	}
-
-	if a, ok := a.(Vectorer); ok {
-		if b, ok := b.(Vectorer); ok {
-			rowa := make([]float64, ac)
-			rowb := make([]float64, bc)
-			for r := 0; r < ar; r++ {
-				a.Row(rowa, r)
-				for i, v := range b.Row(rowb, r) {
-					rowa[i] += v
-				}
-				copy(m.mat.Data[r*m.mat.Stride:r*m.mat.Stride+m.mat.Cols], rowa)
-			}
-			return
-		}
-	}
-
-	for r := 0; r < ar; r++ {
-		for c := 0; c < ac; c++ {
-			m.Set(r, c, a.At(r, c)+b.At(r, c))
-		}
-	}
+	return out
 }
 
-func (m *Dense) Sub(a, b Matrix) {
-	ar, ac := a.Dims()
-	br, bc := b.Dims()
-
-	if ar != br || ac != bc {
-		panic(ErrShape)
-	}
-
-	if m.isZero() {
-		m.mat = BlasMatrix{
-			Order:  BlasOrder,
-			Rows:   ar,
-			Cols:   ac,
-			Stride: ac,
-			Data:   use(m.mat.Data, ar*ac),
-		}
-	} else if ar != m.mat.Rows || ac != m.mat.Cols {
-		panic(ErrShape)
-	}
-
-	if a, ok := a.(Blasser); ok {
-		if b, ok := b.(Blasser); ok {
-			amat, bmat := a.BlasMatrix(), b.BlasMatrix()
-			for ja, jb, jm := 0, 0, 0; ja < ar*amat.Stride; ja, jb, jm = ja+amat.Stride, jb+bmat.Stride, jm+m.mat.Stride {
-				for i, v := range amat.Data[ja : ja+ac] {
-					m.mat.Data[i+jm] = v - bmat.Data[i+jb]
-				}
-			}
-			return
-		}
-	}
-
-	if a, ok := a.(Vectorer); ok {
-		if b, ok := b.(Vectorer); ok {
-			rowa := make([]float64, ac)
-			rowb := make([]float64, bc)
-			for r := 0; r < ar; r++ {
-				a.Row(rowa, r)
-				for i, v := range b.Row(rowb, r) {
-					rowa[i] -= v
-				}
-				copy(m.mat.Data[r*m.mat.Stride:r*m.mat.Stride+m.mat.Cols], rowa)
-			}
-			return
-		}
-	}
-
-	for r := 0; r < ar; r++ {
-		for c := 0; c < ac; c++ {
-			m.Set(r, c, a.At(r, c)-b.At(r, c))
-		}
-	}
+func (m *Dense) Apply(f func(int, int, float64) float64) {
+	Apply(m, f, m)
 }
 
-func (m *Dense) MulElem(a, b Matrix) {
-	ar, ac := a.Dims()
-	br, bc := b.Dims()
-
-	if ar != br || ac != bc {
-		panic(ErrShape)
-	}
-
-	if m.isZero() {
-		m.mat = BlasMatrix{
-			Order:  BlasOrder,
-			Rows:   ar,
-			Cols:   ac,
-			Stride: ac,
-			Data:   use(m.mat.Data, ar*ac),
-		}
-	} else if ar != m.mat.Rows || ac != m.mat.Cols {
-		panic(ErrShape)
-	}
-
-	if a, ok := a.(Blasser); ok {
-		if b, ok := b.(Blasser); ok {
-			amat, bmat := a.BlasMatrix(), b.BlasMatrix()
-			for ja, jb, jm := 0, 0, 0; ja < ar*amat.Stride; ja, jb, jm = ja+amat.Stride, jb+bmat.Stride, jm+m.mat.Stride {
-				for i, v := range amat.Data[ja : ja+ac] {
-					m.mat.Data[i+jm] = v * bmat.Data[i+jb]
-				}
-			}
-			return
+func T(m, out *Dense) *Dense {
+	out = use_dense(out, m.cols, m.rows, ErrOutShape)
+	for row := 0; row < m.rows; row++ {
+		z := m.RowView(row)
+		for col, val := range z {
+			out.Set(col, row, val)
 		}
 	}
-
-	if a, ok := a.(Vectorer); ok {
-		if b, ok := b.(Vectorer); ok {
-			rowa := make([]float64, ac)
-			rowb := make([]float64, bc)
-			for r := 0; r < ar; r++ {
-				a.Row(rowa, r)
-				for i, v := range b.Row(rowb, r) {
-					rowa[i] *= v
-				}
-				copy(m.mat.Data[r*m.mat.Stride:r*m.mat.Stride+m.mat.Cols], rowa)
-			}
-			return
-		}
-	}
-
-	for r := 0; r < ar; r++ {
-		for c := 0; c < ac; c++ {
-			m.Set(r, c, a.At(r, c)*b.At(r, c))
-		}
-	}
+	return out
 }
 
-func (m *Dense) Dot(b Matrix) float64 {
-	mr, mc := m.Dims()
-	br, bc := b.Dims()
-
-	if mr != br || mc != bc {
-		panic(ErrShape)
-	}
-
-	var d float64
-
-	if b, ok := b.(Blasser); ok {
-		bmat := b.BlasMatrix()
-		if m.mat.Order != BlasOrder || bmat.Order != BlasOrder {
-			panic(ErrIllegalOrder)
-		}
-		for jm, jb := 0, 0; jm < mr*m.mat.Stride; jm, jb = jm+m.mat.Stride, jb+bmat.Stride {
-			for i, v := range m.mat.Data[jm : jm+mc] {
-				d += v * bmat.Data[i+jb]
-			}
-		}
-		return d
-	}
-
-	if b, ok := b.(Vectorer); ok {
-		row := make([]float64, bc)
-		for r := 0; r < br; r++ {
-			for i, v := range b.Row(row, r) {
-				d += m.mat.Data[r*m.mat.Stride+i] * v
-			}
-		}
-		return d
-	}
-
-	for r := 0; r < mr; r++ {
-		for c := 0; c < mc; c++ {
-			d += m.At(r, c) * b.At(r, c)
-		}
-	}
-	return d
-}
-
-func (m *Dense) Mul(a, b Matrix) {
-	ar, ac := a.Dims()
-	br, bc := b.Dims()
-
-	if ac != br {
-		panic(ErrShape)
-	}
-
-	var w Dense
-	if m != a && m != b {
-		w = *m
-	}
-	if w.isZero() {
-		w.mat = BlasMatrix{
-			Order:  BlasOrder,
-			Rows:   ar,
-			Cols:   bc,
-			Stride: bc,
-			Data:   use(w.mat.Data, ar*bc),
-		}
-	} else if ar != w.mat.Rows || bc != w.mat.Cols {
-		panic(ErrShape)
-	}
-
-	if a, ok := a.(Blasser); ok {
-		if b, ok := b.(Blasser); ok {
-			amat, bmat := a.BlasMatrix(), b.BlasMatrix()
-			if blasEngine == nil {
-				panic(ErrNoEngine)
-			}
-			blasEngine.Dgemm(
-				BlasOrder,
-				blas.NoTrans, blas.NoTrans,
-				ar, bc, ac,
-				1.,
-				amat.Data, amat.Stride,
-				bmat.Data, bmat.Stride,
-				0.,
-				w.mat.Data, w.mat.Stride)
-			*m = w
-			return
-		}
-	}
-
-	if a, ok := a.(Vectorer); ok {
-		if b, ok := b.(Vectorer); ok {
-			row := make([]float64, ac)
-			col := make([]float64, br)
-			if blasEngine == nil {
-				panic(ErrNoEngine)
-			}
-			for r := 0; r < ar; r++ {
-				for c := 0; c < bc; c++ {
-					w.mat.Data[r*w.mat.Stride+w.mat.Cols] = blasEngine.Ddot(ac, a.Row(row, r), 1, b.Col(col, c), 1)
-				}
-			}
-			*m = w
-			return
-		}
-	}
-
-	row := make([]float64, ac)
-	for r := 0; r < ar; r++ {
-		for i := range row {
-			row[i] = a.At(r, i)
-		}
-		for c := 0; c < bc; c++ {
-			var v float64
-			for i, e := range row {
-				v += e * b.At(i, c)
-			}
-			w.mat.Data[r*w.mat.Stride+w.mat.Cols] = v
-		}
-	}
-	*m = w
-}
-
-func (m *Dense) Scale(f float64, a Matrix) {
-	ar, ac := a.Dims()
-
-	if m.isZero() {
-		m.mat = BlasMatrix{
-			Order:  BlasOrder,
-			Rows:   ar,
-			Cols:   ac,
-			Stride: ac,
-			Data:   use(m.mat.Data, ar*ac),
-		}
-	} else if ar != m.mat.Rows || ac != m.mat.Cols {
-		panic(ErrShape)
-	}
-
-	if a, ok := a.(Blasser); ok {
-		amat := a.BlasMatrix()
-		for ja, jm := 0, 0; ja < ar*amat.Stride; ja, jm = ja+amat.Stride, jm+m.mat.Stride {
-			for i, v := range amat.Data[ja : ja+ac] {
-				m.mat.Data[i+jm] = v * f
-			}
-		}
-		return
-	}
-
-	if a, ok := a.(Vectorer); ok {
-		row := make([]float64, ac)
-		for r := 0; r < ar; r++ {
-			for i, v := range a.Row(row, r) {
-				row[i] = f * v
-			}
-			copy(m.mat.Data[r*m.mat.Stride:r*m.mat.Stride+m.mat.Cols], row)
-		}
-		return
-	}
-
-	for r := 0; r < ar; r++ {
-		for c := 0; c < ac; c++ {
-			m.Set(r, c, f*a.At(r, c))
-		}
-	}
-}
-
-func (m *Dense) Apply(f ApplyFunc, a Matrix) {
-	ar, ac := a.Dims()
-
-	if m.isZero() {
-		m.mat = BlasMatrix{
-			Order:  BlasOrder,
-			Rows:   ar,
-			Cols:   ac,
-			Stride: ac,
-			Data:   use(m.mat.Data, ar*ac),
-		}
-	} else if ar != m.mat.Rows || ac != m.mat.Cols {
-		panic(ErrShape)
-	}
-
-	if a, ok := a.(Blasser); ok {
-		amat := a.BlasMatrix()
-		for j, ja, jm := 0, 0, 0; ja < ar*amat.Stride; j, ja, jm = j+1, ja+amat.Stride, jm+m.mat.Stride {
-			for i, v := range amat.Data[ja : ja+ac] {
-				m.mat.Data[i+jm] = f(j, i, v)
-			}
-		}
-		return
-	}
-
-	if a, ok := a.(Vectorer); ok {
-		row := make([]float64, ac)
-		for r := 0; r < ar; r++ {
-			for i, v := range a.Row(row, r) {
-				row[i] = f(r, i, v)
-			}
-			copy(m.mat.Data[r*m.mat.Stride:r*m.mat.Stride+m.mat.Cols], row)
-		}
-		return
-	}
-
-	for r := 0; r < ar; r++ {
-		for c := 0; c < ac; c++ {
-			m.Set(r, c, f(r, c, a.At(r, c)))
-		}
-	}
-}
-
-func zero(f []float64) {
-	f[0] = 0
-	for i := 1; i < len(f); {
-		i += copy(f[i:], f[:i])
-	}
-}
-
-func (m *Dense) U(a Matrix) {
+func (m *Dense) U(a *Dense) {
 	ar, ac := a.Dims()
 	if ar != ac {
 		panic(ErrSquare)
@@ -717,52 +569,29 @@ func (m *Dense) U(a Matrix) {
 		m.zeroLower()
 		return
 	case m.isZero():
-		m.mat = BlasMatrix{
-			Order:  BlasOrder,
-			Rows:   ar,
-			Cols:   ac,
-			Stride: ac,
-			Data:   use(m.mat.Data, ar*ac),
-		}
-	case ar != m.mat.Rows || ac != m.mat.Cols:
+		m.rows = ar
+		m.cols = ac
+		m.stride = ac
+		m.data = use_slice(m.data, ar*ac, ErrInLength)
+	case ar != m.rows || ac != m.cols:
 		panic(ErrShape)
 	}
 
-	if a, ok := a.(Blasser); ok {
-		amat := a.BlasMatrix()
-		copy(m.mat.Data[:ac], amat.Data[:ac])
-		for j, ja, jm := 1, amat.Stride, m.mat.Stride; ja < ar*amat.Stride; j, ja, jm = j+1, ja+amat.Stride, jm+m.mat.Stride {
-			zero(m.mat.Data[jm : jm+j])
-			copy(m.mat.Data[jm+j:jm+ac], amat.Data[ja+j:ja+ac])
-		}
-		return
+	copy(m.data[:ac], a.data[:ac])
+	for j, ja, jm := 1, a.stride, m.stride; ja < ar*a.stride; j, ja, jm = j+1, ja+a.stride, jm+m.stride {
+		zero(m.data[jm : jm+j])
+		copy(m.data[jm+j:jm+ac], a.data[ja+j:ja+ac])
 	}
-
-	if a, ok := a.(Vectorer); ok {
-		row := make([]float64, ac)
-		copy(m.mat.Data[:m.mat.Cols], a.Row(row, 0))
-		for r := 1; r < ar; r++ {
-			zero(m.mat.Data[r*m.mat.Stride : r*(m.mat.Stride+1)])
-			copy(m.mat.Data[r*(m.mat.Stride+1):r*m.mat.Stride+m.mat.Cols], a.Row(row, r))
-		}
-		return
-	}
-
-	m.zeroLower()
-	for r := 0; r < ar; r++ {
-		for c := r; c < ac; c++ {
-			m.Set(r, c, a.At(r, c))
-		}
-	}
+	return
 }
 
 func (m *Dense) zeroLower() {
-	for i := 1; i < m.mat.Rows; i++ {
-		zero(m.mat.Data[i*m.mat.Stride : i*m.mat.Stride+i])
+	for i := 1; i < m.rows; i++ {
+		zero(m.data[i*m.stride : i*m.stride+i])
 	}
 }
 
-func (m *Dense) L(a Matrix) {
+func (m *Dense) L(a *Dense) {
 	ar, ac := a.Dims()
 	if ar != ac {
 		panic(ErrSquare)
@@ -773,130 +602,37 @@ func (m *Dense) L(a Matrix) {
 		m.zeroUpper()
 		return
 	case m.isZero():
-		m.mat = BlasMatrix{
-			Order:  BlasOrder,
-			Rows:   ar,
-			Cols:   ac,
-			Stride: ac,
-			Data:   use(m.mat.Data, ar*ac),
-		}
-	case ar != m.mat.Rows || ac != m.mat.Cols:
+		m.rows = ar
+		m.cols = ac
+		m.stride = ac
+		m.data = use_slice(m.data, ar*ac, ErrInLength)
+	case ar != m.rows || ac != m.cols:
 		panic(ErrShape)
 	}
 
-	if a, ok := a.(Blasser); ok {
-		amat := a.BlasMatrix()
-		copy(m.mat.Data[:ar], amat.Data[:ar])
-		for j, ja, jm := 1, amat.Stride, m.mat.Stride; ja < ac*amat.Stride; j, ja, jm = j+1, ja+amat.Stride, jm+m.mat.Stride {
-			zero(m.mat.Data[jm : jm+j])
-			copy(m.mat.Data[jm+j:jm+ar], amat.Data[ja+j:ja+ar])
-		}
-		return
+	copy(m.data[:ar], a.data[:ar])
+	for j, ja, jm := 1, a.stride, m.stride; ja < ac*a.stride; j, ja, jm = j+1, ja+a.stride, jm+m.stride {
+		zero(m.data[jm : jm+j])
+		copy(m.data[jm+j:jm+ar], a.data[ja+j:ja+ar])
 	}
-
-	if a, ok := a.(Vectorer); ok {
-		row := make([]float64, ac)
-		for r := 0; r < ar; r++ {
-			a.Row(row[:r+1], r)
-			m.SetRow(r, row)
-		}
-		return
-	}
-
-	m.zeroUpper()
-	for c := 0; c < ac; c++ {
-		for r := c; r < ar; r++ {
-			m.Set(r, c, a.At(r, c))
-		}
-	}
+	return
 }
 
 func (m *Dense) zeroUpper() {
-	for i := 0; i < m.mat.Rows-1; i++ {
-		zero(m.mat.Data[i*m.mat.Stride+i+1 : (i+1)*m.mat.Stride])
+	for i := 0; i < m.rows-1; i++ {
+		zero(m.data[i*m.stride+i+1 : (i+1)*m.stride])
 	}
 }
 
-func (m *Dense) TCopy(a Matrix) {
-	ar, ac := a.Dims()
-
-	var w Dense
-	if m != a {
-		w = *m
-	}
-	if w.isZero() {
-		w.mat = BlasMatrix{
-			Order: BlasOrder,
-			Rows:  ac,
-			Cols:  ar,
-			Data:  use(w.mat.Data, ar*ac),
-		}
-		w.mat.Stride = ar
-	} else if ar != m.mat.Cols || ac != m.mat.Rows {
-		panic(ErrShape)
-	}
-	switch a := a.(type) {
-	case *Dense:
-		for i := 0; i < ac; i++ {
-			for j := 0; j < ar; j++ {
-				w.Set(i, j, a.At(j, i))
-			}
-		}
-	default:
-		for i := 0; i < ac; i++ {
-			for j := 0; j < ar; j++ {
-				w.Set(i, j, a.At(j, i))
-			}
-		}
-	}
-	*m = w
-}
-
-func (m *Dense) Sum() float64 {
-	l := m.mat.Cols
-	var s float64
-	for i := 0; i < len(m.mat.Data); i += m.mat.Stride {
-		for _, v := range m.mat.Data[i : i+l] {
-			s += v
-		}
-	}
-	return s
-}
-
-func (m *Dense) Equals(b Matrix) bool {
+func (m *Dense) Equals(b *Dense) bool {
 	br, bc := b.Dims()
-	if br != m.mat.Rows || bc != m.mat.Cols {
+	if br != m.rows || bc != m.cols {
 		return false
 	}
 
-	if b, ok := b.(Blasser); ok {
-		bmat := b.BlasMatrix()
-		for jb, jm := 0, 0; jm < br*m.mat.Stride; jb, jm = jb+bmat.Stride, jm+m.mat.Stride {
-			for i, v := range m.mat.Data[jm : jm+bc] {
-				if v != bmat.Data[i+jb] {
-					return false
-				}
-			}
-		}
-		return true
-	}
-
-	if b, ok := b.(Vectorer); ok {
-		rowb := make([]float64, bc)
-		for r := 0; r < br; r++ {
-			rowm := m.mat.Data[r*m.mat.Stride : r*m.mat.Stride+m.mat.Cols]
-			for i, v := range b.Row(rowb, r) {
-				if rowm[i] != v {
-					return false
-				}
-			}
-		}
-		return true
-	}
-
-	for r := 0; r < br; r++ {
-		for c := 0; c < bc; c++ {
-			if m.At(r, c) != b.At(r, c) {
+	for jb, jm := 0, 0; jm < br*m.stride; jb, jm = jb+b.stride, jm+m.stride {
+		for i, v := range m.data[jm : jm+bc] {
+			if v != b.data[i+jb] {
 				return false
 			}
 		}
@@ -904,43 +640,47 @@ func (m *Dense) Equals(b Matrix) bool {
 	return true
 }
 
-func (m *Dense) EqualsApprox(b Matrix, epsilon float64) bool {
+func (m *Dense) EqualsApprox(b *Dense, epsilon float64) bool {
 	br, bc := b.Dims()
-	if br != m.mat.Rows || bc != m.mat.Cols {
+	if br != m.rows || bc != m.cols {
 		return false
 	}
 
-	if b, ok := b.(Blasser); ok {
-		bmat := b.BlasMatrix()
-		for jb, jm := 0, 0; jm < br*m.mat.Stride; jb, jm = jb+bmat.Stride, jm+m.mat.Stride {
-			for i, v := range m.mat.Data[jm : jm+bc] {
-				if math.Abs(v-bmat.Data[i+jb]) > epsilon {
-					return false
-				}
-			}
-		}
-		return true
-	}
-
-	if b, ok := b.(Vectorer); ok {
-		rowb := make([]float64, bc)
-		for r := 0; r < br; r++ {
-			rowm := m.mat.Data[r*m.mat.Stride : r*m.mat.Stride+m.mat.Cols]
-			for i, v := range b.Row(rowb, r) {
-				if math.Abs(rowm[i]-v) > epsilon {
-					return false
-				}
-			}
-		}
-		return true
-	}
-
-	for r := 0; r < br; r++ {
-		for c := 0; c < bc; c++ {
-			if math.Abs(m.At(r, c)-b.At(r, c)) > epsilon {
+	for jb, jm := 0, 0; jm < br*m.stride; jb, jm = jb+b.stride, jm+m.stride {
+		for i, v := range m.data[jm : jm+bc] {
+			if math.Abs(v-b.data[i+jb]) > epsilon {
 				return false
 			}
 		}
 	}
 	return true
+}
+
+// Det returns the determinant of the matrix a.
+func Det(a *Dense) float64 {
+	return LU(Clone(a)).Det()
+}
+
+func (m *Dense) Det() float64 {
+	return Det(m)
+}
+
+// Inv returns the inverse or pseudoinverse of the matrix a.
+func Inv(a *Dense, out *Dense) *Dense {
+	eye := NewDense(a.rows, a.rows)
+	eye.FillDiag(1.0)
+	return Solve(a, eye, out)
+}
+
+// Solve returns a matrix x that satisfies ax = b.
+// TODO: check LU and QR to see if output allocation can be avoided
+// when output receiving matrix is provided.
+func Solve(a, b, out *Dense) *Dense {
+	out = use_dense(out, a.cols, b.cols, ErrOutShape)
+	if a.rows == a.cols {
+		Copy(out, LU(Clone(a)).Solve(Clone(b)))
+	} else {
+		Copy(out, QR(Clone(a)).Solve(Clone(b)))
+	}
+	return out
 }

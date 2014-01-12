@@ -21,27 +21,24 @@ func Cholesky(a *Dense) CholeskyFactor {
 	// Initialize.
 	m, n := a.Dims()
 	spd := m == n
-	l := NewDense(n, n, nil)
+	l := NewDense(n, n)
 
 	// Main loop.
-	lRowj := make([]float64, n)
-	lRowk := make([]float64, n)
 	for j := 0; j < n; j++ {
 		var d float64
-		l.Row(lRowj, j)
+		lRowj := l.RowView(j)
 		for k := 0; k < j; k++ {
 			var s float64
-			l.Row(lRowk, k)
+			lRowk := l.RowView(k)
 			for i := 0; i < k; i++ {
 				s += lRowk[i] * lRowj[i]
 			}
-			s = (a.At(j, k) - s) / l.At(k, k)
+			s = (a.Get(j, k) - s) / l.Get(k, k)
 			lRowj[k] = s
 			d += s * s
-			spd = spd && a.At(k, j) == a.At(j, k)
+			spd = spd && a.Get(k, j) == a.Get(j, k)
 		}
-		l.SetRow(j, lRowj)
-		d = a.At(j, j) - d
+		d = a.Get(j, j) - d
 		spd = spd && d > 0
 		l.Set(j, j, math.Sqrt(math.Max(d, 0)))
 		for k := j + 1; k < n; k++ {
@@ -59,22 +56,22 @@ func CholeskyR(a *Dense) (r *Dense, spd bool) {
 	// Initialize.
 	m, n := a.Dims()
 	spd = m == n
-	r = NewDense(n, n, nil)
+	r = NewDense(n, n)
 
 	// Main loop.
 	for j := 0; j < n; j++ {
 		var d float64
 		for k := 0; k < j; k++ {
-			s := a.At(k, j)
+			s := a.Get(k, j)
 			for i := 0; i < k; i++ {
-				s -= r.At(i, k) * r.At(i, j)
+				s -= r.Get(i, k) * r.Get(i, j)
 			}
-			s /= r.At(k, k)
+			s /= r.Get(k, k)
 			r.Set(k, j, s)
 			d += s * s
-			spd = spd && a.At(k, j) == a.At(j, k)
+			spd = spd && a.Get(k, j) == a.Get(j, k)
 		}
-		d = a.At(j, j) - d
+		d = a.Get(j, j) - d
 		spd = spd && d > 0
 		r.Set(j, j, math.Sqrt(math.Max(d, 0)))
 		for k := j + 1; k < n; k++ {
@@ -107,9 +104,9 @@ func (f CholeskyFactor) Solve(b *Dense) (x *Dense) {
 	for k := 0; k < n; k++ {
 		for j := 0; j < nx; j++ {
 			for i := 0; i < k; i++ {
-				x.Set(k, j, x.At(k, j)-x.At(i, j)*l.At(k, i))
+				x.Set(k, j, x.Get(k, j)-x.Get(i, j)*l.Get(k, i))
 			}
-			x.Set(k, j, x.At(k, j)/l.At(k, k))
+			x.Set(k, j, x.Get(k, j)/l.Get(k, k))
 		}
 	}
 
@@ -117,9 +114,9 @@ func (f CholeskyFactor) Solve(b *Dense) (x *Dense) {
 	for k := n - 1; k >= 0; k-- {
 		for j := 0; j < nx; j++ {
 			for i := k + 1; i < n; i++ {
-				x.Set(k, j, x.At(k, j)-x.At(i, j)*l.At(i, k))
+				x.Set(k, j, x.Get(k, j)-x.Get(i, j)*l.Get(i, k))
 			}
-			x.Set(k, j, x.At(k, j)/l.At(k, k))
+			x.Set(k, j, x.Get(k, j)/l.Get(k, k))
 		}
 	}
 

@@ -14,7 +14,7 @@ func (s *S) TestCholesky(c *check.C) {
 		spd bool
 	}{
 		{
-			a: NewDense(3, 3, []float64{
+			a: make_dense(3, 3, []float64{
 				4, 1, 1,
 				1, 2, 3,
 				1, 3, 6,
@@ -26,16 +26,14 @@ func (s *S) TestCholesky(c *check.C) {
 		cf := Cholesky(t.a)
 		c.Check(cf.SPD, check.Equals, t.spd)
 
-		lt := &Dense{}
-		lt.TCopy(cf.L)
-		lc := DenseCopyOf(cf.L)
+		lt := T(cf.L, nil)
 
-		lc.Mul(lc, lt)
+		lc := Mult(cf.L, lt, nil)
 		c.Check(lc.EqualsApprox(t.a, 1e-12), check.Equals, true)
 
-		x := cf.Solve(eye())
+		x := cf.Solve(eye(3))
 
-		t.a.Mul(t.a, x)
-		c.Check(t.a.EqualsApprox(eye(), 1e-12), check.Equals, true)
+		t.a = Mult(t.a, x, nil)
+		c.Check(t.a.EqualsApprox(eye(3), 1e-12), check.Equals, true)
 	}
 }

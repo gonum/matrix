@@ -6,39 +6,7 @@ package mat64
 
 import (
 	check "launchpad.net/gocheck"
-	"math"
-
-	"github.com/gonum/floats"
 )
-
-func isUpperTriangular(a *Dense) bool {
-	rows, cols := a.Dims()
-	for c := 0; c < cols-1; c++ {
-		for r := c + 1; r < rows; r++ {
-			if math.Abs(a.At(r, c)) > 1e-14 {
-				return false
-			}
-		}
-	}
-	return true
-}
-
-func isOrthogonal(a *Dense) bool {
-	rows, cols := a.Dims()
-	col1 := make([]float64, rows)
-	col2 := make([]float64, rows)
-	for i := 0; i < cols-1; i++ {
-		for j := i + 1; j < cols; j++ {
-			a.Col(col1, i)
-			a.Col(col2, j)
-			dot := floats.Dot(col1, col2)
-			if math.Abs(dot) > 1e-14 {
-				return false
-			}
-		}
-	}
-	return true
-}
 
 func (s *S) TestQRD(c *check.C) {
 	for _, test := range []struct {
@@ -64,14 +32,12 @@ func (s *S) TestQRD(c *check.C) {
 		},
 	} {
 
-		a := NewDense(flatten(test.a))
-		qf := QR(DenseCopyOf(a))
+		a := flatten2dense(test.a)
+		qf := QR(Clone(a))
 		r := qf.R()
 		q := qf.Q()
 
-		rows, cols := a.Dims()
-		newA := NewDense(rows, cols, nil)
-		newA.Mul(q, r)
+		newA := Mult(q, r, nil)
 
 		c.Check(isOrthogonal(q), check.Equals, true, check.Commentf("Test %v: Q not orthogonal", test.name))
 		c.Check(isUpperTriangular(r), check.Equals, true, check.Commentf("Test %v: R not upper triangular", test.name))

@@ -36,14 +36,14 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 	// 	panic(ErrShape)
 	// }
 
-	sigma := make([]float64, min(m+1, n))
-	nu := min(m, n)
+	sigma := make([]float64, smaller(m+1, n))
+	nu := smaller(m, n)
 	var u, v *Dense
 	if wantu {
-		u = NewDense(m, nu, nil)
+		u = NewDense(m, nu)
 	}
 	if wantv {
-		v = NewDense(n, n, nil)
+		v = NewDense(n, n)
 	}
 
 	var (
@@ -53,25 +53,25 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 
 	// Reduce a to bidiagonal form, storing the diagonal elements
 	// in sigma and the super-diagonal elements in e.
-	nct := min(m-1, n)
-	nrt := max(0, min(n-2, m))
-	for k := 0; k < max(nct, nrt); k++ {
+	nct := smaller(m-1, n)
+	nrt := larger(0, smaller(n-2, m))
+	for k := 0; k < larger(nct, nrt); k++ {
 		if k < nct {
 			// Compute the transformation for the k-th column and
 			// place the k-th diagonal in sigma[k].
 			// Compute 2-norm of k-th column without under/overflow.
 			sigma[k] = 0
 			for i := k; i < m; i++ {
-				sigma[k] = math.Hypot(sigma[k], a.At(i, k))
+				sigma[k] = math.Hypot(sigma[k], a.Get(i, k))
 			}
 			if sigma[k] != 0 {
-				if a.At(k, k) < 0 {
+				if a.Get(k, k) < 0 {
 					sigma[k] = -sigma[k]
 				}
 				for i := k; i < m; i++ {
-					a.Set(i, k, a.At(i, k)/sigma[k])
+					a.Set(i, k, a.Get(i, k)/sigma[k])
 				}
-				a.Set(k, k, a.At(k, k)+1)
+				a.Set(k, k, a.Get(k, k)+1)
 			}
 			sigma[k] = -sigma[k]
 		}
@@ -81,24 +81,24 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 				// Apply the transformation.
 				var t float64
 				for i := k; i < m; i++ {
-					t += a.At(i, k) * a.At(i, j)
+					t += a.Get(i, k) * a.Get(i, j)
 				}
-				t = -t / a.At(k, k)
+				t = -t / a.Get(k, k)
 				for i := k; i < m; i++ {
-					a.Set(i, j, a.At(i, j)+t*a.At(i, k))
+					a.Set(i, j, a.Get(i, j)+t*a.Get(i, k))
 				}
 			}
 
 			// Place the k-th row of a into e for the
 			// subsequent calculation of the row transformation.
-			e[j] = a.At(k, j)
+			e[j] = a.Get(k, j)
 		}
 
 		if wantu && k < nct {
 			// Place the transformation in u for subsequent back
 			// multiplication.
 			for i := k; i < m; i++ {
-				u.Set(i, k, a.At(i, k))
+				u.Set(i, k, a.Get(i, k))
 			}
 		}
 
@@ -127,13 +127,13 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 				}
 				for j := k + 1; j < n; j++ {
 					for i := k + 1; i < m; i++ {
-						work[i] += e[j] * a.At(i, j)
+						work[i] += e[j] * a.Get(i, j)
 					}
 				}
 				for j := k + 1; j < n; j++ {
 					t := -e[j] / e[k+1]
 					for i := k + 1; i < m; i++ {
-						a.Set(i, j, a.At(i, j)+t*work[i])
+						a.Set(i, j, a.Get(i, j)+t*work[i])
 					}
 				}
 			}
@@ -148,15 +148,15 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 	}
 
 	// Set up the final bidiagonal matrix or order p.
-	p := min(n, m+1)
+	p := smaller(n, m+1)
 	if nct < n {
-		sigma[nct] = a.At(nct, nct)
+		sigma[nct] = a.Get(nct, nct)
 	}
 	if m < p {
 		sigma[p-1] = 0
 	}
 	if nrt+1 < p {
-		e[nrt] = a.At(nrt, p-1)
+		e[nrt] = a.Get(nrt, p-1)
 	}
 	e[p-1] = 0
 
@@ -173,17 +173,17 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 				for j := k + 1; j < nu; j++ {
 					var t float64
 					for i := k; i < m; i++ {
-						t += u.At(i, k) * u.At(i, j)
+						t += u.Get(i, k) * u.Get(i, j)
 					}
-					t /= -u.At(k, k)
+					t /= -u.Get(k, k)
 					for i := k; i < m; i++ {
-						u.Set(i, j, u.At(i, j)+t*u.At(i, k))
+						u.Set(i, j, u.Get(i, j)+t*u.Get(i, k))
 					}
 				}
 				for i := k; i < m; i++ {
-					u.Set(i, k, -u.At(i, k))
+					u.Set(i, k, -u.Get(i, k))
 				}
-				u.Set(k, k, 1+u.At(k, k))
+				u.Set(k, k, 1+u.Get(k, k))
 				for i := 0; i < k-1; i++ {
 					u.Set(i, k, 0)
 				}
@@ -203,11 +203,11 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 				for j := k + 1; j < nu; j++ {
 					var t float64
 					for i := k + 1; i < n; i++ {
-						t += v.At(i, k) * v.At(i, j)
+						t += v.Get(i, k) * v.Get(i, j)
 					}
-					t /= -v.At(k+1, k)
+					t /= -v.Get(k+1, k)
 					for i := k + 1; i < n; i++ {
-						v.Set(i, j, v.At(i, j)+t*v.At(i, k))
+						v.Set(i, j, v.Get(i, j)+t*v.Get(i, k))
 					}
 				}
 			}
@@ -292,8 +292,8 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 				}
 				if wantv {
 					for i := 0; i < n; i++ {
-						t = cs*v.At(i, j) + sn*v.At(i, p-1)
-						v.Set(i, p-1, -sn*v.At(i, j)+cs*v.At(i, p-1))
+						t = cs*v.Get(i, j) + sn*v.Get(i, p-1)
+						v.Set(i, p-1, -sn*v.Get(i, j)+cs*v.Get(i, p-1))
 						v.Set(i, j, t)
 					}
 				}
@@ -312,8 +312,8 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 				e[j] *= cs
 				if wantu {
 					for i := 0; i < m; i++ {
-						t = cs*u.At(i, j) + sn*u.At(i, k-1)
-						u.Set(i, k-1, -sn*u.At(i, j)+cs*u.At(i, k-1))
+						t = cs*u.Get(i, j) + sn*u.Get(i, k-1)
+						u.Set(i, k-1, -sn*u.Get(i, j)+cs*u.Get(i, k-1))
 						u.Set(i, j, t)
 					}
 				}
@@ -358,8 +358,8 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 				sigma[j+1] *= cs
 				if wantv {
 					for i := 0; i < n; i++ {
-						t = cs*v.At(i, j) + sn*v.At(i, j+1)
-						v.Set(i, j+1, -sn*v.At(i, j)+cs*v.At(i, j+1))
+						t = cs*v.Get(i, j) + sn*v.Get(i, j+1)
+						v.Set(i, j+1, -sn*v.Get(i, j)+cs*v.Get(i, j+1))
 						v.Set(i, j, t)
 					}
 				}
@@ -373,8 +373,8 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 				e[j+1] *= cs
 				if wantu && j < m-1 {
 					for i := 0; i < m; i++ {
-						t = cs*u.At(i, j) + sn*u.At(i, j+1)
-						u.Set(i, j+1, -sn*u.At(i, j)+cs*u.At(i, j+1))
+						t = cs*u.Get(i, j) + sn*u.Get(i, j+1)
+						u.Set(i, j+1, -sn*u.Get(i, j)+cs*u.Get(i, j+1))
 						u.Set(i, j, t)
 					}
 				}
@@ -393,7 +393,7 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 				}
 				if wantv {
 					for i := 0; i <= pp; i++ {
-						v.Set(i, k, -v.At(i, k))
+						v.Set(i, k, -v.Get(i, k))
 					}
 				}
 			}
@@ -406,15 +406,15 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 				sigma[k], sigma[k+1] = sigma[k+1], sigma[k]
 				if wantv && k < n-1 {
 					for i := 0; i < n; i++ {
-						t := v.At(i, k+1)
-						v.Set(i, k+1, v.At(i, k))
+						t := v.Get(i, k+1)
+						v.Set(i, k+1, v.Get(i, k))
 						v.Set(i, k, t)
 					}
 				}
 				if wantu && k < m-1 {
 					for i := 0; i < m; i++ {
-						t := u.At(i, k+1)
-						u.Set(i, k+1, u.At(i, k))
+						t := u.Get(i, k+1)
+						u.Set(i, k+1, u.Get(i, k))
 						u.Set(i, k, t)
 					}
 				}
@@ -431,7 +431,7 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 // S returns a newly allocated S matrix from the sigma values held by the
 // factorisation.
 func (f SVDFactors) S() *Dense {
-	s := NewDense(len(f.Sigma), len(f.Sigma), nil)
+	s := NewDense(len(f.Sigma), len(f.Sigma))
 	for i, v := range f.Sigma {
 		s.Set(i, i, v)
 	}
@@ -445,7 +445,7 @@ func (f SVDFactors) Rank(epsilon float64) int {
 		return 0
 	}
 	m, _ := f.U.Dims()
-	tol := float64(max(m, len(f.Sigma))) * f.Sigma[0] * epsilon
+	tol := float64(larger(m, len(f.Sigma))) * f.Sigma[0] * epsilon
 	var r int
 	for _, v := range f.Sigma {
 		if v > tol {
@@ -459,5 +459,5 @@ func (f SVDFactors) Rank(epsilon float64) int {
 func (f SVDFactors) Cond() float64 {
 	m, _ := f.U.Dims()
 	n, _ := f.V.Dims()
-	return f.Sigma[0] / f.Sigma[min(m, n)-1]
+	return f.Sigma[0] / f.Sigma[smaller(m, n)-1]
 }
