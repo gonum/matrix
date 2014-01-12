@@ -53,7 +53,7 @@ func LU(a *Dense) LUFactors {
             luRowi := lu.RowView(i)
 
 			// Most of the time is spent in the following dot product.
-			kmax := min(i, j)
+			kmax := smaller(i, j)
 			var s float64
 			for k := 0; k < kmax; k++ {
 				s += luRowi[k] * luColj[k]

@@ -107,6 +107,20 @@ func multiply(x, y, out []float64) []float64 {
 
 
 
+func dot(x, y []float64) float64 {
+    if len(x) != len(y) {
+        panic(ErrLength)
+    }
+    d := 0.0
+    for i, v := range x {
+        d += v * y[i]
+    }
+    return d
+}
+
+
+
+
 // shift adds constant v to every element of x,
 // store the result in out and returns out.
 // If out is nil, a new slice will be allocated;
@@ -140,19 +154,57 @@ func scale(x []float64, v float64, out []float64) []float64 {
 
 
 
-func min(a, b int) int {
+func min(x []float64) float64 {
+    v := x[0]
+    for _, val := range x {
+        if val < v {
+            v = val
+        }
+    }
+    return v
+}
+
+
+
+func max(x []float64) float64 {
+    v := x[0]
+    for _, val := range x {
+        if val > v {
+            v = val
+        }
+    }
+    return v
+}
+
+
+
+
+func sum(x []float64) float64 {
+    v := 0.0
+    for _, val := range x {
+        v += val
+    }
+    return v
+}
+
+
+
+
+func smaller(a, b int) int {
 	if a < b {
 		return a
 	}
 	return b
 }
 
-func max(a, b int) int {
+func larger(a, b int) int {
 	if a > b {
 		return a
 	}
 	return b
 }
+
+
 
 // use returns a float64 slice with l elements, using f if it
 // has the necessary capacity, otherwise creating a new slice.
@@ -254,6 +306,7 @@ const (
 	ErrSquare          = Error("mat64: expect square matrix")
 	ErrNormOrder       = Error("mat64: invalid norm order for matrix")
 	ErrSingular        = Error("mat64: matrix is singular")
+	ErrLength          = Error("mat64: length mismatch")
 	ErrShape           = Error("mat64: dimension mismatch")
 	ErrIllegalStride   = Error("mat64: illegal stride")
 	ErrPivot           = Error("mat64: malformed pivot list")

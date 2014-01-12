@@ -487,36 +487,90 @@ func Mult(a, b, out *Dense) *Dense {
 
 
 
-func (m *Dense) Min() float64 {
-	min := m.mat.Data[0]
-	for k := 0; k < m.mat.Rows; k++ {
-		for _, v := range m.mat.Data[k*m.mat.Stride : k*m.mat.Stride+m.mat.Cols] {
-			min = math.Min(min, v)
-		}
-	}
-	return min
+
+func Dot(a, b *Dense) float64 {
+    if a.mat.Rows != b.mat.Rows || a.mat.Cols != b.mat.Cols {
+        panic(ErrShape)
+    }
+    if a.Contiguous() && b.Contiguous() {
+        return dot(a.DataView(), b.DataView())
+    }
+    d := 0.0
+    for row := 0; row < a.mat.Rows; row++ {
+        d += dot(a.RowView(row), b.RowView(row))
+    }
+    return d
 }
 
-func (m *Dense) Max() float64 {
-	max := m.mat.Data[0]
-	for k := 0; k < m.mat.Rows; k++ {
-		for _, v := range m.mat.Data[k*m.mat.Stride : k*m.mat.Stride+m.mat.Cols] {
-			max = math.Max(max, v)
-		}
-	}
-	return max
+
+
+
+func (m *Dense) Dot(b *Dense) float64 {
+    return Dot(m, b)
 }
+
+
+
+
+func (m *Dense) Min() float64 {
+    if m.Contiguous() {
+        return min(m.DataView())
+    }
+    v := min(m.RowView(0))
+    for row := 1; row < m.mat.Rows; row++ {
+        z := min(m.RowView(row))
+        if z < v {
+            v = z
+        }
+    }
+    return v
+}
+
+
+
+
+func (m *Dense) Max() float64 {
+    if m.Contiguous() {
+        return max(m.DataView())
+    }
+    v := max(m.RowView(0))
+    for row := 1; row < m.mat.Rows; row++ {
+        z := max(m.RowView(row))
+        if z > v {
+            v = z
+        }
+    }
+    return v
+}
+
+
+
+
+func (m *Dense) Sum() float64 {
+    if m.Contiguous() {
+        return sum(m.DataView())
+    }
+    v := 0.0
+    for row := 0; row < m.mat.Rows; row++ {
+        v += sum(m.RowView(row))
+    }
+    return v
+}
+
+
+
 
 func (m *Dense) Trace() float64 {
 	if m.mat.Rows != m.mat.Cols {
 		panic(ErrSquare)
 	}
 	var t float64
-	for i := 0; i < len(m.mat.Data); i += m.mat.Stride + 1 {
+	for i, n := 0, m.mat.Rows * m.mat.Cols; i < n; i += m.mat.Stride + 1 {
 		t += m.mat.Data[i]
 	}
 	return t
 }
+
 
 var inf = math.Inf(1)
 
@@ -585,52 +639,50 @@ func (m *Dense) Norm(ord float64) float64 {
 	return n
 }
 
-func (m *Dense) Dot(b *Dense) float64 {
-	mr, mc := m.Dims()
-	br, bc := b.Dims()
 
-	if mr != br || mc != bc {
-		panic(ErrShape)
-	}
 
-	var d float64
 
-    if m.mat.Order != BlasOrder || b.mat.Order != BlasOrder {
-        panic(ErrIllegalOrder)
-    }
-    for jm, jb := 0, 0; jm < mr*m.mat.Stride; jm, jb = jm+m.mat.Stride, jb+b.mat.Stride {
-        for i, v := range m.mat.Data[jm : jm+mc] {
-            d += v * b.mat.Data[i+jb]
+// Function f takes a row/column index and element value
+// and returns some function of that tuple.
+func Apply(
+    m *Dense,
+    f func(r, c int, v float64) float64,
+    out *Dense) *Dense {
+
+    out = use_dense(out, m.mat.Rows, m.mat.Cols, ErrOutShape)
+    for row := 0; row < m.mat.Rows; row++ {
+        in_row := m.RowView(row)
+        out_row := out.RowView(row)
+        for col, z := range in_row {
+            out_row[col] = f(row, col, z)
         }
     }
-    return d
+    return out
 }
 
-// An ApplyFunc takes a row/column index and element value and returns some function of that tuple.
-type ApplyFunc func(r, c int, v float64) float64
 
-func (m *Dense) Apply(f ApplyFunc, a *Dense) {
-	ar, ac := a.Dims()
 
-	if m.isZero() {
-		m.mat = BlasMatrix{
-			Order:  BlasOrder,
-			Rows:   ar,
-			Cols:   ac,
-			Stride: ac,
-			Data:   use(m.mat.Data, ar*ac),
-		}
-	} else if ar != m.mat.Rows || ac != m.mat.Cols {
-		panic(ErrShape)
-	}
 
-    for j, ja, jm := 0, 0, 0; ja < ar*a.mat.Stride; j, ja, jm = j+1, ja+a.mat.Stride, jm+m.mat.Stride {
-        for i, v := range a.mat.Data[ja : ja+ac] {
-            m.mat.Data[i+jm] = f(j, i, v)
+func (m *Dense) Apply(f func(int, int, float64) float64) {
+    Apply(m, f, m)
+}
+
+
+
+
+func T(m, out *Dense) *Dense {
+    out = use_dense(out, m.mat.Cols, m.mat.Rows, ErrOutShape)
+    for row := 0; row < m.mat.Rows; row++ {
+        z := m.RowView(row)
+        for col, val := range z {
+            out.Set(col, row, val)
         }
     }
-    return
+    return out
 }
+
+
+
 
 func (m *Dense) U(a *Dense) {
 	ar, ac := a.Dims()
@@ -702,43 +754,6 @@ func (m *Dense) zeroUpper() {
 	for i := 0; i < m.mat.Rows-1; i++ {
 		zero(m.mat.Data[i*m.mat.Stride+i+1 : (i+1)*m.mat.Stride])
 	}
-}
-
-func (m *Dense) TCopy(a *Dense) {
-	ar, ac := a.Dims()
-
-	var w Dense
-	if m != a {
-		w = *m
-	}
-	if w.isZero() {
-		w.mat = BlasMatrix{
-			Order: BlasOrder,
-			Rows:  ac,
-			Cols:  ar,
-			Data:  use(w.mat.Data, ar*ac),
-		}
-		w.mat.Stride = ar
-	} else if ar != m.mat.Cols || ac != m.mat.Rows {
-		panic(ErrShape)
-	}
-    for i := 0; i < ac; i++ {
-        for j := 0; j < ar; j++ {
-            w.Set(i, j, a.At(j, i))
-        }
-    }
-	*m = w
-}
-
-func (m *Dense) Sum() float64 {
-	l := m.mat.Cols
-	var s float64
-	for i := 0; i < len(m.mat.Data); i += m.mat.Stride {
-		for _, v := range m.mat.Data[i : i+l] {
-			s += v
-		}
-	}
-	return s
 }
 
 func (m *Dense) Equals(b *Dense) bool {

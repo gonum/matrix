@@ -420,7 +420,7 @@ func hqr2(d, e []float64, hess, v *Dense, epsilon float64) {
 			d[i] = hess.At(i, i)
 			e[i] = 0
 		}
-		for j := max(i-1, 0); j < nn; j++ {
+		for j := larger(i-1, 0); j < nn; j++ {
 			norm += math.Abs(hess.At(i, j))
 		}
 	}
@@ -634,7 +634,7 @@ func hqr2(d, e []float64, hess, v *Dense, epsilon float64) {
 					}
 
 					// Column modification
-					for i := 0; i <= min(n, k+3); i++ {
+					for i := 0; i <= smaller(n, k+3); i++ {
 						p = x*hess.At(i, k) + y*hess.At(i, k+1)
 						if notlast {
 							p += z * hess.At(i, k+2)
@@ -795,7 +795,7 @@ func hqr2(d, e []float64, hess, v *Dense, epsilon float64) {
 	for j := nn - 1; j >= low; j-- {
 		for i := low; i <= high; i++ {
 			z = 0
-			for k := low; k <= min(j, high); k++ {
+			for k := low; k <= smaller(j, high); k++ {
 				z += v.At(i, k) * hess.At(k, j)
 			}
 			v.Set(i, j, z)

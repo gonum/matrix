@@ -26,8 +26,7 @@ func (s *S) TestCholesky(c *check.C) {
 		cf := Cholesky(t.a)
 		c.Check(cf.SPD, check.Equals, t.spd)
 
-		lt := &Dense{}
-		lt.TCopy(cf.L)
+		lt := T(cf.L, nil)
 
         lc := Mult(cf.L, lt, nil)
 		c.Check(lc.EqualsApprox(t.a, 1e-12), check.Equals, true)

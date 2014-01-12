@@ -36,8 +36,8 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 	// 	panic(ErrShape)
 	// }
 
-	sigma := make([]float64, min(m+1, n))
-	nu := min(m, n)
+	sigma := make([]float64, smaller(m+1, n))
+	nu := smaller(m, n)
 	var u, v *Dense
 	if wantu {
 		u = NewDense(m, nu)
@@ -53,9 +53,9 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 
 	// Reduce a to bidiagonal form, storing the diagonal elements
 	// in sigma and the super-diagonal elements in e.
-	nct := min(m-1, n)
-	nrt := max(0, min(n-2, m))
-	for k := 0; k < max(nct, nrt); k++ {
+	nct := smaller(m-1, n)
+	nrt := larger(0, smaller(n-2, m))
+	for k := 0; k < larger(nct, nrt); k++ {
 		if k < nct {
 			// Compute the transformation for the k-th column and
 			// place the k-th diagonal in sigma[k].
@@ -148,7 +148,7 @@ func SVD(a *Dense, epsilon, small float64, wantu, wantv bool) SVDFactors {
 	}
 
 	// Set up the final bidiagonal matrix or order p.
-	p := min(n, m+1)
+	p := smaller(n, m+1)
 	if nct < n {
 		sigma[nct] = a.At(nct, nct)
 	}
@@ -445,7 +445,7 @@ func (f SVDFactors) Rank(epsilon float64) int {
 		return 0
 	}
 	m, _ := f.U.Dims()
-	tol := float64(max(m, len(f.Sigma))) * f.Sigma[0] * epsilon
+	tol := float64(larger(m, len(f.Sigma))) * f.Sigma[0] * epsilon
 	var r int
 	for _, v := range f.Sigma {
 		if v > tol {
@@ -459,5 +459,5 @@ func (f SVDFactors) Rank(epsilon float64) int {
 func (f SVDFactors) Cond() float64 {
 	m, _ := f.U.Dims()
 	n, _ := f.V.Dims()
-	return f.Sigma[0] / f.Sigma[min(m, n)-1]
+	return f.Sigma[0] / f.Sigma[smaller(m, n)-1]
 }

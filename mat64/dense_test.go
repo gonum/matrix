@@ -510,20 +510,16 @@ func (s *S) TestTranspose(c *check.C) {
 		a := flatten2dense(test.a)
 		t := flatten2dense(test.t)
 
-		var r, rr Dense
-
-		r.TCopy(a)
+        r := T(a, nil)
 		c.Check(r.Equals(t), check.Equals, true, check.Commentf("Test %d: %v transpose = %v", i, test.a, test.t))
 
-		rr.TCopy(&r)
+        rr := T(r, nil)
 		c.Check(rr.Equals(a), check.Equals, true, check.Commentf("Test %d: %v transpose = I", i, test.a, test.t))
 
-		zero(r.mat.Data)
-		r.TCopy(a)
+		r = T(a, nil)
 		c.Check(r.Equals(t), check.Equals, true, check.Commentf("Test %d: %v transpose = %v", i, test.a, test.t))
 
-		zero(rr.mat.Data)
-		rr.TCopy(&r)
+		rr = T(r, nil)
 		c.Check(rr.Equals(a), check.Equals, true, check.Commentf("Test %d: %v transpose = I", i, test.a, test.t))
 	}
 }
@@ -580,7 +576,7 @@ func identity(r, c int, v float64) float64 { return v }
 func (s *S) TestApply(c *check.C) {
 	for i, test := range []struct {
 		a, t [][]float64
-		fn   ApplyFunc
+		fn   func(int, int, float64) float64
 	}{
 		{
 			[][]float64{{0, 0, 0}, {0, 0, 0}, {0, 0, 0}},
@@ -636,12 +632,10 @@ func (s *S) TestApply(c *check.C) {
 		a := flatten2dense(test.a)
 		t := flatten2dense(test.t)
 
-		var r Dense
-
-		r.Apply(test.fn, a)
+        r := Apply(a, test.fn, nil)
 		c.Check(r.Equals(t), check.Equals, true, check.Commentf("Test %d: obtained %v expect: %v", i, r.mat.Data, t.mat.Data))
 
-		a.Apply(test.fn, a)
+		a.Apply(test.fn)
 		c.Check(a.Equals(t), check.Equals, true, check.Commentf("Test %d: obtained %v expect: %v", i, a.mat.Data, t.mat.Data))
 	}
 }
