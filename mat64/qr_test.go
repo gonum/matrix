@@ -33,7 +33,7 @@ func (s *S) TestQRD(c *check.C) {
 	} {
 
 		a := flatten2dense(test.a)
-		qf := QR(DenseCopyOf(a))
+		qf := QR(Clone(a))
 		r := qf.R()
 		q := qf.Q()
 

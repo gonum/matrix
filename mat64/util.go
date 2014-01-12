@@ -158,5 +158,6 @@ const (
 	ErrIllegalOrder    = Error("mat64: illegal order")
 	ErrNoEngine        = Error("mat64: no blas engine registered: call Register()")
     ErrInLength        = Error("mat64: input data has wrong length")
-    ErrOutLength       = Error("mat64: output receiver has wrong length")
+    ErrOutLength       = Error("mat64: output receiving slice has wrong length")
+    ErrOutShape        = Error("mat64: output receiving matrix has wrong shape")
 )

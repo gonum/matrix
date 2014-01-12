@@ -83,7 +83,7 @@ func (s *S) TestEigen(c *check.C) {
 			epsilon: math.Pow(2, -52.0),
 		},
 	} {
-		ef := Eigen(DenseCopyOf(t.a), t.epsilon)
+		ef := Eigen(Clone(t.a), t.epsilon)
 		if t.d != nil {
 			c.Check(ef.d, check.DeepEquals, t.d)
 		}

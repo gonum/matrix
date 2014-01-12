@@ -28,7 +28,7 @@ func (s *S) TestCholesky(c *check.C) {
 
 		lt := &Dense{}
 		lt.TCopy(cf.L)
-		lc := DenseCopyOf(cf.L)
+		lc := Clone(cf.L)
 
 		lc.Mul(lc, lt)
 		c.Check(lc.EqualsApprox(t.a, 1e-12), check.Equals, true)

@@ -206,8 +206,7 @@ func (s *S) TestSetRowColumn(c *check.C) {
 	} {
 		for ri, row := range as {
 			a := flatten2dense(as)
-			t := &Dense{}
-			t.Clone(a)
+			t := Clone(a)
 			a.SetRow(ri, make([]float64, a.mat.Cols))
 			t.Sub(t, a)
 			c.Check(t.Norm(0), check.Equals, floats.Norm(row, 2))
@@ -215,8 +214,7 @@ func (s *S) TestSetRowColumn(c *check.C) {
 
 		for ci := range as[0] {
 			a := flatten2dense(as)
-			t := &Dense{}
-			t.Clone(a)
+			t := Clone(a)
 			a.SetCol(ci, make([]float64, a.mat.Rows))
 			col := make([]float64, a.mat.Rows)
 			for j := range col {
@@ -476,7 +474,7 @@ func (s *S) TestLU(c *check.C) {
 			}
 		}
 
-		rc = DenseCopyOf(r)
+		rc = Clone(r)
 		rc.U(rc)
 		for m := 0; m < size; m++ {
 			for n := 0; n < size; n++ {
@@ -491,7 +489,7 @@ func (s *S) TestLU(c *check.C) {
 			}
 		}
 
-		rc = DenseCopyOf(r)
+		rc = Clone(r)
 		rc.L(rc)
 		for m := 0; m < size; m++ {
 			for n := 0; n < size; n++ {

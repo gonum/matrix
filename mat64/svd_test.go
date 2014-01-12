@@ -108,7 +108,7 @@ func (s *S) TestSVD(c *check.C) {
 			sigma: []float64{21.25950088109745, 1.5415021616856577, 1.2873979074613637, 0},
 		},
 	} {
-		svd := SVD(DenseCopyOf(t.a), t.epsilon, t.small, t.wantu, t.wantv)
+		svd := SVD(Clone(t.a), t.epsilon, t.small, t.wantu, t.wantv)
 		if t.sigma != nil {
 			c.Check(svd.Sigma, check.DeepEquals, t.sigma)
 		}

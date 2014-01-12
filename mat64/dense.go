@@ -73,7 +73,6 @@ func (m *Dense) Rows() int { return m.mat.Rows }
 
 func (m *Dense) Cols() int { return m.mat.Cols }
 
-func (m *Dense) Size() int { return m.mat.Rows * m.mat.Cols }
 
 
 
@@ -148,6 +147,10 @@ func (m *Dense) SetRow(r int, v []float64) {
 
 
 
+// ColView
+// There is no ColView b/c of row-major.
+
+
 
 func (m *Dense) ColCopy(c int, col []float64) []float64 {
     m.validate_col_idx(c)
@@ -180,6 +183,40 @@ func (m *Dense) SetCol(c int, v []float64) {
 
 
 
+func (m *Dense) SubmatrixView(i, j, r, c int) *Dense {
+    if i < 0 || i >= m.mat.Rows || r <= 0 || i + r > m.mat.Rows {
+        panic(ErrIndexOutOfRange)
+    }
+    if j < 0 || j >= m.mat.Cols || c <= 0 || j + c > m.mat.Cols {
+        panic(ErrIndexOutOfRange)
+    }
+
+    out := Dense{}
+    out.mat.Rows = r
+    out.mat.Cols = c
+    out.mat.Stride = m.mat.Stride
+	out.mat.Data = m.mat.Data[i*m.mat.Stride+j : (i+r-1)*m.mat.Stride+(j+c)]
+    return &out
+}
+
+
+
+
+func (m *Dense) SubmatrixCopy(i, j, r, c int, out *Dense) *Dense {
+    out = use_dense(out, r, c, ErrOutShape)
+    Copy(out, m.SubmatrixView(i, j, r, c))
+    return out
+}
+
+
+
+
+func (m *Dense) SetSubmatrix(i, j, r, c int, v []float64) {
+    m.SubmatrixView(i, j, r, c).SetData(v)
+}
+
+
+
 
 // DataView returns the slice in the matrix object
 // that holds the data, in row major.
@@ -197,22 +234,17 @@ func (m *Dense) DataView() []float64 {
 
 
 
-// Data copies out all elements of the matrix, row by row.
+
+// DataCopy copies out all elements of the matrix, row by row.
 // If out is nil, a slice is allocated;
 // otherwise out must have the right length.
 // The copied slice is returned.
-func (m *Dense) Data(out []float64) []float64 {
-    if out == nil {
-        out = make([]float64, m.Size())
-    } else {
-        if len(out) != m.Size() {
-            panic(ErrOutLength)
-        }
-    }
+func (m *Dense) DataCopy(out []float64) []float64 {
+    out = use_slice(out, m.mat.Rows * m.mat.Cols, ErrOutLength)
     if m.Contiguous() {
         copy(out, m.DataView())
     } else {
-        r, c := m.Dims()
+        r, c := m.mat.Rows, m.mat.Cols
         for row, k := 0, 0; row < r; row++ {
             copy(out[k : k + c], m.RowView(row))
             k += c
@@ -223,64 +255,81 @@ func (m *Dense) Data(out []float64) []float64 {
 
 
 
-// View returns a view on the receiver.
-func (m *Dense) View(i, j, r, c int) {
-	m.mat.Data = m.mat.Data[i*m.mat.Stride+j : (i+r-1)*m.mat.Stride+(j+c)]
-	m.mat.Rows = r
-	m.mat.Cols = c
+
+// SetData copies the values of v into the matrix.
+// Values in v are supposed to be in row major, that is,
+// values for the first row of the matrix, followed by
+// values for the second row, and so on.
+// Length of v must be equal to the total number of elements in the
+// matrix.
+func (m *Dense) SetData(v []float64) {
+    r, c := m.mat.Rows, m.mat.Cols
+    if len(v) != r * c {
+        panic(ErrInLength)
+    }
+    if m.Contiguous() {
+        copy(m.DataView(), v)
+    } else {
+        for k, row := 0, 0; row < r; row++ {
+            copy(m.RowView(row), v[k : k+c])
+            k += c
+        }
+    }
 }
 
-/*
-func (m *Dense) Submatrix(a Matrix, i, j, r, c int) {
-	// This is probably a bad idea, but for the moment, we do it.
-	v := *m
-	v.View(i, j, r, c)
-	m.Clone(&Dense{v.BlasMatrix()})
-}
-*/
 
 
 
 func (m *Dense) Fill(v float64) {
     if m.Contiguous() {
-        fill(m.mat.Data, v)
-        return
-    }
-    for row := 0; row < m.mat.Rows; row++ {
-        fill(m.RowView(row), v)
+        fill(m.DataView(), v)
+    } else {
+        for row := 0; row < m.mat.Rows; row++ {
+            fill(m.RowView(row), v)
+        }
     }
 }
 
 
 
 
-
-func (m *Dense) Clone(a *Dense) {
-	r, c := a.Dims()
-	m.mat = BlasMatrix{
-		Order: BlasOrder,
-		Rows:  r,
-		Cols:  c,
-	}
-	data := make([]float64, r*c)
-    for i := 0; i < r; i++ {
-        copy(data[i*c:(i+1)*c], a.mat.Data[i*a.mat.Stride:i*a.mat.Stride+c])
+func Copy(dest *Dense, src *Dense) {
+    if dest.mat.Rows != src.mat.Rows || dest.mat.Cols != src.mat.Cols {
+        panic(ErrShape)
     }
-    m.mat.Stride = c
-    m.mat.Data = data
+    if dest.Contiguous() && src.Contiguous() {
+        copy(dest.DataView(), src.DataView())
+    } else
+    {
+        for row := 0; row < src.mat.Rows; row++ {
+            copy(dest.RowView(row), src.RowView(row))
+        }
+    }
 }
 
-func (m *Dense) Copy(a *Dense) (r, c int) {
-	r, c = a.Dims()
-	r = min(r, m.mat.Rows)
-	c = min(c, m.mat.Cols)
 
-    for i := 0; i < r; i++ {
-        copy(m.mat.Data[i*m.mat.Stride:i*m.mat.Stride+c], a.mat.Data[i*a.mat.Stride:i*a.mat.Stride+c])
+
+
+// Clone creates a new Dense and copies the elements of src into it.
+// The new Dense is returned.
+// Note that while src could be a submatrix of a larger matrix,
+// the cloned matrix is always freshly allocated and is its own
+// entirety.
+func Clone(src *Dense) *Dense {
+    out := NewDense(src.mat.Rows, src.mat.Cols)
+    if src.Contiguous() {
+        copy(out.mat.Data, src.DataView())
+    } else
+    {
+        for row := 0; row < src.mat.Rows; row++ {
+            copy(out.RowView(row), src.RowView(row))
+        }
     }
-
-	return r, c
+    return out
 }
+
+
+
 
 func (m *Dense) Min() float64 {
 	min := m.mat.Data[0]
@@ -748,7 +797,7 @@ type Blasser interface {
 
 // Det returns the determinant of the matrix a.
 func Det(a *Dense) float64 {
-	return LU(DenseCopyOf(a)).Det()
+	return LU(Clone(a)).Det()
 }
 
 // Inverse returns the inverse or pseudoinverse of the matrix a.
@@ -766,15 +815,8 @@ func Inverse(a *Dense) *Dense {
 func Solve(a, b *Dense) (x *Dense) {
 	m, n := a.Dims()
 	if m == n {
-		return LU(DenseCopyOf(a)).Solve(DenseCopyOf(b))
+		return LU(Clone(a)).Solve(Clone(b))
 	}
-	return QR(DenseCopyOf(a)).Solve(DenseCopyOf(b))
+	return QR(Clone(a)).Solve(Clone(b))
 }
 
-
-// DenseCopyOf returns a newly allocated copy of the elements of a.
-func DenseCopyOf(a *Dense) *Dense {
-	d := &Dense{}
-	d.Clone(a)
-	return d
-}

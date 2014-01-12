@@ -43,7 +43,7 @@ func (s *S) TestLUD(c *check.C) {
 			sign: 1,
 		},
 	} {
-		lf := LU(DenseCopyOf(t.a))
+		lf := LU(Clone(t.a))
 		if t.pivot != nil {
 			c.Check(lf.Pivot, check.DeepEquals, t.pivot)
 			c.Check(lf.Sign, check.Equals, t.sign)
@@ -59,7 +59,7 @@ func (s *S) TestLUD(c *check.C) {
 		}
 
 		l.Mul(l, u)
-		c.Check(l.EqualsApprox(pivotRows(DenseCopyOf(t.a), lf.Pivot), 1e-12), check.Equals, true)
+		c.Check(l.EqualsApprox(pivotRows(Clone(t.a), lf.Pivot), 1e-12), check.Equals, true)
 
 		x := lf.Solve(eye())
 		t.a.Mul(t.a, x)
@@ -102,7 +102,7 @@ func (s *S) TestLUDGaussian(c *check.C) {
 			sign: 1,
 		},
 	} {
-		lf := LUGaussian(DenseCopyOf(t.a))
+		lf := LUGaussian(Clone(t.a))
 		if t.pivot != nil {
 			c.Check(lf.Pivot, check.DeepEquals, t.pivot)
 			c.Check(lf.Sign, check.Equals, t.sign)
@@ -118,7 +118,7 @@ func (s *S) TestLUDGaussian(c *check.C) {
 		}
 
 		l.Mul(l, u)
-		c.Check(l.EqualsApprox(pivotRows(DenseCopyOf(t.a), lf.Pivot), 1e-12), check.Equals, true)
+		c.Check(l.EqualsApprox(pivotRows(Clone(t.a), lf.Pivot), 1e-12), check.Equals, true)
 
 		aInv := Inverse(t.a)
 		aInv.Mul(aInv, t.a)

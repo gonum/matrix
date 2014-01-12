@@ -179,8 +179,5 @@ func (f QRFactor) Solve(b *Dense) (x *Dense) {
 		}
 	}
 
-	x = b
-	x.View(0, 0, n, bn)
-
-	return x
+    return b.SubmatrixView(0, 0, n, bn)
 }
