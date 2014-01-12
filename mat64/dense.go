@@ -15,61 +15,55 @@ func Register(b blas.Float64) { blasEngine = b }
 
 func Registered() blas.Float64 { return blasEngine }
 
+// This package uses row-major storage.
+// Every operation is affected by it.
+// Do not change it.
 const BlasOrder = blas.RowMajor
 
 type Dense struct {
-	mat BlasMatrix
+	rows, cols, stride int
+	data               []float64
 }
 
 // NewDense creates a Dense of required dimensions
 // and returns the pointer to it.
 func NewDense(r, c int) *Dense {
-	return &Dense{BlasMatrix{
-		Order:  BlasOrder,
-		Rows:   r,
-		Cols:   c,
-		Stride: c,
-		Data:   make([]float64, r*c),
-	}}
+	return &Dense{
+		rows:   r,
+		cols:   c,
+		stride: c,
+		data:   make([]float64, r*c),
+	}
 }
 
 func (m *Dense) LoadData(data []float64, r, c int) {
 	if len(data) != r*c {
 		panic(ErrInLength)
 	}
-    m.mat = BlasMatrix{
-        Order: BlasOrder,
-        Rows: r,
-        Cols: c,
-        Stride: c,
-        Data: data}
-}
-
-func (m *Dense) LoadBlas(b BlasMatrix) {
-	if b.Order != BlasOrder {
-		panic(ErrIllegalOrder)
-	}
-	m.mat = b
+	m.rows = r
+	m.cols = c
+	m.stride = c
+	m.data = data
 }
 
 func (m *Dense) isZero() bool {
-	return m.mat.Cols == 0 || m.mat.Rows == 0
+	return m.cols == 0 || m.rows == 0
 }
 
-func (m *Dense) Dims() (r, c int) { return m.mat.Rows, m.mat.Cols }
+func (m *Dense) Dims() (r, c int) { return m.rows, m.cols }
 
-func (m *Dense) Rows() int { return m.mat.Rows }
+func (m *Dense) Rows() int { return m.rows }
 
-func (m *Dense) Cols() int { return m.mat.Cols }
+func (m *Dense) Cols() int { return m.cols }
 
 func (m *Dense) validate_row_idx(r int) {
-	if r >= m.mat.Rows || r < 0 {
+	if r >= m.rows || r < 0 {
 		panic(ErrIndexOutOfRange)
 	}
 }
 
 func (m *Dense) validate_col_idx(c int) {
-	if c >= m.mat.Cols || c < 0 {
+	if c >= m.cols || c < 0 {
 		panic(ErrIndexOutOfRange)
 	}
 }
@@ -81,30 +75,30 @@ func (m *Dense) validate_col_idx(c int) {
 // than its parent matrix; otherwise, the value is true.
 // If this function returns true, one may subsequently
 // call DataView to get a view of the data slice and work on it directly.
-func (m *Dense) Contiguous() bool { return m.mat.Cols == m.mat.Stride }
+func (m *Dense) Contiguous() bool { return m.cols == m.stride }
 
 func (m *Dense) At(r, c int) float64 {
-	return m.mat.Data[r*m.mat.Stride+c]
+	return m.data[r*m.stride+c]
 }
 
 func (m *Dense) Set(r, c int, v float64) {
-	m.mat.Data[r*m.mat.Stride+c] = v
+	m.data[r*m.stride+c] = v
 }
 
 func (m *Dense) RowView(r int) []float64 {
 	m.validate_row_idx(r)
-	k := r * m.mat.Stride
-	return m.mat.Data[k : k+m.mat.Cols]
+	k := r * m.stride
+	return m.data[k : k+m.cols]
 }
 
 func (m *Dense) RowCopy(r int, row []float64) []float64 {
-	row = use_slice(row, m.mat.Cols, ErrOutLength)
+	row = use_slice(row, m.cols, ErrOutLength)
 	copy(row, m.RowView(r))
 	return row
 }
 
 func (m *Dense) SetRow(r int, v []float64) {
-	if len(v) != m.mat.Cols {
+	if len(v) != m.cols {
 		panic(ErrInLength)
 	}
 	copy(m.RowView(r), v)
@@ -115,12 +109,12 @@ func (m *Dense) SetRow(r int, v []float64) {
 
 func (m *Dense) ColCopy(c int, col []float64) []float64 {
 	m.validate_col_idx(c)
-	col = use_slice(col, m.mat.Rows, ErrOutLength)
+	col = use_slice(col, m.rows, ErrOutLength)
 
 	if blasEngine == nil {
 		panic(ErrNoEngine)
 	}
-	blasEngine.Dcopy(m.mat.Rows, m.mat.Data[c:], m.mat.Stride, col, 1)
+	blasEngine.Dcopy(m.rows, m.data[c:], m.stride, col, 1)
 
 	return col
 }
@@ -128,29 +122,29 @@ func (m *Dense) ColCopy(c int, col []float64) []float64 {
 func (m *Dense) SetCol(c int, v []float64) {
 	m.validate_col_idx(c)
 
-	if len(v) != m.mat.Rows {
+	if len(v) != m.rows {
 		panic(ErrInLength)
 	}
 
 	if blasEngine == nil {
 		panic(ErrNoEngine)
 	}
-	blasEngine.Dcopy(m.mat.Rows, v, 1, m.mat.Data[c:], m.mat.Stride)
+	blasEngine.Dcopy(m.rows, v, 1, m.data[c:], m.stride)
 }
 
 func (m *Dense) SubmatrixView(i, j, r, c int) *Dense {
-	if i < 0 || i >= m.mat.Rows || r <= 0 || i+r > m.mat.Rows {
+	if i < 0 || i >= m.rows || r <= 0 || i+r > m.rows {
 		panic(ErrIndexOutOfRange)
 	}
-	if j < 0 || j >= m.mat.Cols || c <= 0 || j+c > m.mat.Cols {
+	if j < 0 || j >= m.cols || c <= 0 || j+c > m.cols {
 		panic(ErrIndexOutOfRange)
 	}
 
 	out := Dense{}
-	out.mat.Rows = r
-	out.mat.Cols = c
-	out.mat.Stride = m.mat.Stride
-	out.mat.Data = m.mat.Data[i*m.mat.Stride+j : (i+r-1)*m.mat.Stride+(j+c)]
+	out.rows = r
+	out.cols = c
+	out.stride = m.stride
+	out.data = m.data[i*m.stride+j : (i+r-1)*m.stride+(j+c)]
 	return &out
 }
 
@@ -172,7 +166,7 @@ func (m *Dense) SetSubmatrix(i, j, r, c int, v []float64) {
 // if Contiguous() is false, nil is returned.
 func (m *Dense) DataView() []float64 {
 	if m.Contiguous() {
-		return m.mat.Data
+		return m.data
 	}
 	return nil
 	// TODO: return nil here or panic?
@@ -183,11 +177,11 @@ func (m *Dense) DataView() []float64 {
 // otherwise out must have the right length.
 // The copied slice is returned.
 func (m *Dense) DataCopy(out []float64) []float64 {
-	out = use_slice(out, m.mat.Rows*m.mat.Cols, ErrOutLength)
+	out = use_slice(out, m.rows*m.cols, ErrOutLength)
 	if m.Contiguous() {
 		copy(out, m.DataView())
 	} else {
-		r, c := m.mat.Rows, m.mat.Cols
+		r, c := m.rows, m.cols
 		for row, k := 0, 0; row < r; row++ {
 			copy(out[k:k+c], m.RowView(row))
 			k += c
@@ -203,7 +197,7 @@ func (m *Dense) DataCopy(out []float64) []float64 {
 // Length of v must be equal to the total number of elements in the
 // matrix.
 func (m *Dense) SetData(v []float64) {
-	r, c := m.mat.Rows, m.mat.Cols
+	r, c := m.rows, m.cols
 	if len(v) != r*c {
 		panic(ErrInLength)
 	}
@@ -217,57 +211,53 @@ func (m *Dense) SetData(v []float64) {
 	}
 }
 
-
 func (m *Dense) DiagCopy(out []float64) []float64 {
-    if m.mat.Rows != m.mat.Cols {
-        panic(ErrSquare)
-    }
-    out = use_slice(out, m.mat.Rows, ErrOutLength)
-    for i, j := 0, 0; i < m.mat.Rows; i += m.mat.Stride + 1 {
-        out[j] = m.mat.Data[i]
-        j++
-    }
-    return out
+	if m.rows != m.cols {
+		panic(ErrSquare)
+	}
+	out = use_slice(out, m.rows, ErrOutLength)
+	for i, j := 0, 0; i < m.rows; i += m.stride + 1 {
+		out[j] = m.data[i]
+		j++
+	}
+	return out
 }
-
 
 func (m *Dense) SetDiag(v []float64) {
-    if m.mat.Rows != m.mat.Cols {
-        panic(ErrSquare)
-    }
-    if len(v) != m.mat.Rows {
-        panic(ErrInLength)
-    }
-    for i, j := 0, 0; i < m.mat.Rows; i += m.mat.Stride + 1 {
-        m.mat.Data[i] = v[j]
-        j++
-    }
+	if m.rows != m.cols {
+		panic(ErrSquare)
+	}
+	if len(v) != m.rows {
+		panic(ErrInLength)
+	}
+	for i, j := 0, 0; i < m.rows; i += m.stride + 1 {
+		m.data[i] = v[j]
+		j++
+	}
 }
-
 
 func (m *Dense) FillDiag(v float64) {
-    if m.mat.Rows != m.mat.Cols {
-        panic(ErrSquare)
-    }
-    for row, k := 0, 0; row < m.mat.Rows; row++ {
-        m.mat.Data[k] = v
-        k += m.mat.Stride + 1
-    }
+	if m.rows != m.cols {
+		panic(ErrSquare)
+	}
+	for row, k := 0, 0; row < m.rows; row++ {
+		m.data[k] = v
+		k += m.stride + 1
+	}
 }
 
-
 func (m *Dense) Fill(v float64) {
-    element_wise_unary(m, v, m, fill)
+	element_wise_unary(m, v, m, fill)
 }
 
 func Copy(dest *Dense, src *Dense) {
-	if dest.mat.Rows != src.mat.Rows || dest.mat.Cols != src.mat.Cols {
+	if dest.rows != src.rows || dest.cols != src.cols {
 		panic(ErrShape)
 	}
 	if dest.Contiguous() && src.Contiguous() {
 		copy(dest.DataView(), src.DataView())
 	} else {
-		for row := 0; row < src.mat.Rows; row++ {
+		for row := 0; row < src.rows; row++ {
 			copy(dest.RowView(row), src.RowView(row))
 		}
 	}
@@ -279,7 +269,7 @@ func Copy(dest *Dense, src *Dense) {
 // the cloned matrix is always freshly allocated and is its own
 // entirety.
 func Clone(src *Dense) *Dense {
-	out := NewDense(src.mat.Rows, src.mat.Cols)
+	out := NewDense(src.rows, src.cols)
 	Copy(out, src)
 	return out
 }
@@ -287,12 +277,12 @@ func Clone(src *Dense) *Dense {
 func element_wise_unary(a *Dense, val float64, out *Dense,
 	f func(a []float64, val float64, out []float64) []float64) *Dense {
 
-	out = use_dense(out, a.mat.Rows, a.mat.Cols, ErrOutShape)
+	out = use_dense(out, a.rows, a.cols, ErrOutShape)
 	if a.Contiguous() && out.Contiguous() {
 		f(a.DataView(), val, out.DataView())
 		return out
 	}
-	for row := 0; row < a.mat.Rows; row++ {
+	for row := 0; row < a.rows; row++ {
 		f(a.RowView(row), val, out.RowView(row))
 	}
 	return out
@@ -317,15 +307,15 @@ func (m *Dense) Scale(v float64) {
 func element_wise_binary(a, b, out *Dense,
 	f func(a, b, out []float64) []float64) *Dense {
 
-	if a.mat.Rows != b.mat.Rows || a.mat.Cols != b.mat.Cols {
+	if a.rows != b.rows || a.cols != b.cols {
 		panic(ErrShape)
 	}
-	out = use_dense(out, a.mat.Rows, a.mat.Cols, ErrOutShape)
+	out = use_dense(out, a.rows, a.cols, ErrOutShape)
 	if a.Contiguous() && b.Contiguous() && out.Contiguous() {
 		f(a.DataView(), b.DataView(), out.DataView())
 		return out
 	}
-	for row := 0; row < a.mat.Rows; row++ {
+	for row := 0; row < a.rows; row++ {
 		f(a.RowView(row), b.RowView(row), out.RowView(row))
 	}
 	return out
@@ -340,15 +330,15 @@ func (m *Dense) Add(X *Dense) {
 }
 
 func AddScaled(a, b *Dense, s float64, out *Dense) *Dense {
-	if a.mat.Rows != b.mat.Rows || a.mat.Cols != b.mat.Cols {
+	if a.rows != b.rows || a.cols != b.cols {
 		panic(ErrShape)
 	}
-	out = use_dense(out, a.mat.Rows, a.mat.Cols, ErrOutShape)
+	out = use_dense(out, a.rows, a.cols, ErrOutShape)
 	if a.Contiguous() && b.Contiguous() && out.Contiguous() {
 		add_scaled(a.DataView(), b.DataView(), s, out.DataView())
 		return out
 	}
-	for row := 0; row < a.mat.Rows; row++ {
+	for row := 0; row < a.rows; row++ {
 		add_scaled(a.RowView(row), b.RowView(row), s, out.RowView(row))
 	}
 	return out
@@ -392,23 +382,23 @@ func Mult(a, b, out *Dense) *Dense {
 		blas.NoTrans, blas.NoTrans,
 		ar, bc, ac,
 		1.,
-		a.mat.Data, a.mat.Stride,
-		b.mat.Data, b.mat.Stride,
+		a.data, a.stride,
+		b.data, b.stride,
 		0.,
-		out.mat.Data, out.mat.Stride)
+		out.data, out.stride)
 
 	return out
 }
 
 func Dot(a, b *Dense) float64 {
-	if a.mat.Rows != b.mat.Rows || a.mat.Cols != b.mat.Cols {
+	if a.rows != b.rows || a.cols != b.cols {
 		panic(ErrShape)
 	}
 	if a.Contiguous() && b.Contiguous() {
 		return dot(a.DataView(), b.DataView())
 	}
 	d := 0.0
-	for row := 0; row < a.mat.Rows; row++ {
+	for row := 0; row < a.rows; row++ {
 		d += dot(a.RowView(row), b.RowView(row))
 	}
 	return d
@@ -423,7 +413,7 @@ func (m *Dense) Min() float64 {
 		return min(m.DataView())
 	}
 	v := min(m.RowView(0))
-	for row := 1; row < m.mat.Rows; row++ {
+	for row := 1; row < m.rows; row++ {
 		z := min(m.RowView(row))
 		if z < v {
 			v = z
@@ -437,7 +427,7 @@ func (m *Dense) Max() float64 {
 		return max(m.DataView())
 	}
 	v := max(m.RowView(0))
-	for row := 1; row < m.mat.Rows; row++ {
+	for row := 1; row < m.rows; row++ {
 		z := max(m.RowView(row))
 		if z > v {
 			v = z
@@ -451,19 +441,19 @@ func (m *Dense) Sum() float64 {
 		return sum(m.DataView())
 	}
 	v := 0.0
-	for row := 0; row < m.mat.Rows; row++ {
+	for row := 0; row < m.rows; row++ {
 		v += sum(m.RowView(row))
 	}
 	return v
 }
 
 func (m *Dense) Trace() float64 {
-	if m.mat.Rows != m.mat.Cols {
+	if m.rows != m.cols {
 		panic(ErrSquare)
 	}
 	var t float64
-	for i, n := 0, m.mat.Rows*m.mat.Cols; i < n; i += m.mat.Stride + 1 {
-		t += m.mat.Data[i]
+	for i, n := 0, m.rows*m.cols; i < n; i += m.stride + 1 {
+		t += m.data[i]
 	}
 	return t
 }
@@ -480,8 +470,8 @@ func (m *Dense) Norm(ord float64) float64 {
 	var n float64
 	switch {
 	case ord == 1:
-		col := make([]float64, m.mat.Rows)
-		for i := 0; i < m.mat.Cols; i++ {
+		col := make([]float64, m.rows)
+		for i := 0; i < m.cols; i++ {
 			var s float64
 			for _, e := range m.ColCopy(i, col) {
 				s += e
@@ -489,7 +479,7 @@ func (m *Dense) Norm(ord float64) float64 {
 			n = math.Max(math.Abs(s), n)
 		}
 	case math.IsInf(ord, +1):
-		for i := 0; i < m.mat.Rows; i++ {
+		for i := 0; i < m.rows; i++ {
 			var s float64
 			for _, e := range m.RowView(i) {
 				s += e
@@ -498,8 +488,8 @@ func (m *Dense) Norm(ord float64) float64 {
 		}
 	case ord == -1:
 		n = math.MaxFloat64
-		col := make([]float64, m.mat.Rows)
-		for i := 0; i < m.mat.Cols; i++ {
+		col := make([]float64, m.rows)
+		for i := 0; i < m.cols; i++ {
 			var s float64
 			for _, e := range m.ColCopy(i, col) {
 				s += e
@@ -508,7 +498,7 @@ func (m *Dense) Norm(ord float64) float64 {
 		}
 	case math.IsInf(ord, -1):
 		n = math.MaxFloat64
-		for i := 0; i < m.mat.Rows; i++ {
+		for i := 0; i < m.rows; i++ {
 			var s float64
 			for _, e := range m.RowView(i) {
 				s += e
@@ -516,8 +506,8 @@ func (m *Dense) Norm(ord float64) float64 {
 			n = math.Min(math.Abs(s), n)
 		}
 	case ord == 0:
-		for i := 0; i < len(m.mat.Data); i += m.mat.Stride {
-			for _, v := range m.mat.Data[i : i+m.mat.Cols] {
+		for i := 0; i < len(m.data); i += m.stride {
+			for _, v := range m.data[i : i+m.cols] {
 				n += v * v
 			}
 		}
@@ -542,8 +532,8 @@ func Apply(
 	f func(r, c int, v float64) float64,
 	out *Dense) *Dense {
 
-	out = use_dense(out, m.mat.Rows, m.mat.Cols, ErrOutShape)
-	for row := 0; row < m.mat.Rows; row++ {
+	out = use_dense(out, m.rows, m.cols, ErrOutShape)
+	for row := 0; row < m.rows; row++ {
 		in_row := m.RowView(row)
 		out_row := out.RowView(row)
 		for col, z := range in_row {
@@ -558,8 +548,8 @@ func (m *Dense) Apply(f func(int, int, float64) float64) {
 }
 
 func T(m, out *Dense) *Dense {
-	out = use_dense(out, m.mat.Cols, m.mat.Rows, ErrOutShape)
-	for row := 0; row < m.mat.Rows; row++ {
+	out = use_dense(out, m.cols, m.rows, ErrOutShape)
+	for row := 0; row < m.rows; row++ {
 		z := m.RowView(row)
 		for col, val := range z {
 			out.Set(col, row, val)
@@ -579,28 +569,25 @@ func (m *Dense) U(a *Dense) {
 		m.zeroLower()
 		return
 	case m.isZero():
-		m.mat = BlasMatrix{
-			Order:  BlasOrder,
-			Rows:   ar,
-			Cols:   ac,
-			Stride: ac,
-			Data:   use_slice(m.mat.Data, ar*ac, ErrInLength),
-		}
-	case ar != m.mat.Rows || ac != m.mat.Cols:
+		m.rows = ar
+		m.cols = ac
+		m.stride = ac
+		m.data = use_slice(m.data, ar*ac, ErrInLength)
+	case ar != m.rows || ac != m.cols:
 		panic(ErrShape)
 	}
 
-	copy(m.mat.Data[:ac], a.mat.Data[:ac])
-	for j, ja, jm := 1, a.mat.Stride, m.mat.Stride; ja < ar*a.mat.Stride; j, ja, jm = j+1, ja+a.mat.Stride, jm+m.mat.Stride {
-		zero(m.mat.Data[jm : jm+j])
-		copy(m.mat.Data[jm+j:jm+ac], a.mat.Data[ja+j:ja+ac])
+	copy(m.data[:ac], a.data[:ac])
+	for j, ja, jm := 1, a.stride, m.stride; ja < ar*a.stride; j, ja, jm = j+1, ja+a.stride, jm+m.stride {
+		zero(m.data[jm : jm+j])
+		copy(m.data[jm+j:jm+ac], a.data[ja+j:ja+ac])
 	}
 	return
 }
 
 func (m *Dense) zeroLower() {
-	for i := 1; i < m.mat.Rows; i++ {
-		zero(m.mat.Data[i*m.mat.Stride : i*m.mat.Stride+i])
+	for i := 1; i < m.rows; i++ {
+		zero(m.data[i*m.stride : i*m.stride+i])
 	}
 }
 
@@ -615,40 +602,37 @@ func (m *Dense) L(a *Dense) {
 		m.zeroUpper()
 		return
 	case m.isZero():
-		m.mat = BlasMatrix{
-			Order:  BlasOrder,
-			Rows:   ar,
-			Cols:   ac,
-			Stride: ac,
-			Data:   use_slice(m.mat.Data, ar*ac, ErrInLength),
-		}
-	case ar != m.mat.Rows || ac != m.mat.Cols:
+		m.rows = ar
+		m.cols = ac
+		m.stride = ac
+		m.data = use_slice(m.data, ar*ac, ErrInLength)
+	case ar != m.rows || ac != m.cols:
 		panic(ErrShape)
 	}
 
-	copy(m.mat.Data[:ar], a.mat.Data[:ar])
-	for j, ja, jm := 1, a.mat.Stride, m.mat.Stride; ja < ac*a.mat.Stride; j, ja, jm = j+1, ja+a.mat.Stride, jm+m.mat.Stride {
-		zero(m.mat.Data[jm : jm+j])
-		copy(m.mat.Data[jm+j:jm+ar], a.mat.Data[ja+j:ja+ar])
+	copy(m.data[:ar], a.data[:ar])
+	for j, ja, jm := 1, a.stride, m.stride; ja < ac*a.stride; j, ja, jm = j+1, ja+a.stride, jm+m.stride {
+		zero(m.data[jm : jm+j])
+		copy(m.data[jm+j:jm+ar], a.data[ja+j:ja+ar])
 	}
 	return
 }
 
 func (m *Dense) zeroUpper() {
-	for i := 0; i < m.mat.Rows-1; i++ {
-		zero(m.mat.Data[i*m.mat.Stride+i+1 : (i+1)*m.mat.Stride])
+	for i := 0; i < m.rows-1; i++ {
+		zero(m.data[i*m.stride+i+1 : (i+1)*m.stride])
 	}
 }
 
 func (m *Dense) Equals(b *Dense) bool {
 	br, bc := b.Dims()
-	if br != m.mat.Rows || bc != m.mat.Cols {
+	if br != m.rows || bc != m.cols {
 		return false
 	}
 
-	for jb, jm := 0, 0; jm < br*m.mat.Stride; jb, jm = jb+b.mat.Stride, jm+m.mat.Stride {
-		for i, v := range m.mat.Data[jm : jm+bc] {
-			if v != b.mat.Data[i+jb] {
+	for jb, jm := 0, 0; jm < br*m.stride; jb, jm = jb+b.stride, jm+m.stride {
+		for i, v := range m.data[jm : jm+bc] {
+			if v != b.data[i+jb] {
 				return false
 			}
 		}
@@ -658,13 +642,13 @@ func (m *Dense) Equals(b *Dense) bool {
 
 func (m *Dense) EqualsApprox(b *Dense, epsilon float64) bool {
 	br, bc := b.Dims()
-	if br != m.mat.Rows || bc != m.mat.Cols {
+	if br != m.rows || bc != m.cols {
 		return false
 	}
 
-	for jb, jm := 0, 0; jm < br*m.mat.Stride; jb, jm = jb+b.mat.Stride, jm+m.mat.Stride {
-		for i, v := range m.mat.Data[jm : jm+bc] {
-			if math.Abs(v-b.mat.Data[i+jb]) > epsilon {
+	for jb, jm := 0, 0; jm < br*m.stride; jb, jm = jb+b.stride, jm+m.stride {
+		for i, v := range m.data[jm : jm+bc] {
+			if math.Abs(v-b.data[i+jb]) > epsilon {
 				return false
 			}
 		}
@@ -672,29 +656,19 @@ func (m *Dense) EqualsApprox(b *Dense, epsilon float64) bool {
 	return true
 }
 
-// BlasMatrix represents a cblas native representation of a matrix.
-type BlasMatrix struct {
-	Order      blas.Order
-	Rows, Cols int
-	Stride     int
-	Data       []float64
-}
-
 // Det returns the determinant of the matrix a.
 func Det(a *Dense) float64 {
 	return LU(Clone(a)).Det()
 }
 
-
 func (m *Dense) Det() float64 {
-    return Det(m)
+	return Det(m)
 }
-
 
 // Inv returns the inverse or pseudoinverse of the matrix a.
 func Inv(a *Dense, out *Dense) *Dense {
-    eye := NewDense(a.mat.Rows, a.mat.Rows)
-    eye.FillDiag(1.0)
+	eye := NewDense(a.rows, a.rows)
+	eye.FillDiag(1.0)
 	return Solve(a, eye, out)
 }
 
@@ -702,11 +676,11 @@ func Inv(a *Dense, out *Dense) *Dense {
 // TODO: check LU and QR to see if output allocation can be avoided
 // when output receiving matrix is provided.
 func Solve(a, b, out *Dense) *Dense {
-    out = use_dense(out, a.mat.Cols, b.mat.Cols, ErrOutShape)
-	if a.mat.Rows == a.mat.Cols {
+	out = use_dense(out, a.cols, b.cols, ErrOutShape)
+	if a.rows == a.cols {
 		Copy(out, LU(Clone(a)).Solve(Clone(b)))
 	} else {
-        Copy(out, QR(Clone(a)).Solve(Clone(b)))
-    }
-    return out
+		Copy(out, QR(Clone(a)).Solve(Clone(b)))
+	}
+	return out
 }

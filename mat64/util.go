@@ -79,13 +79,12 @@ func dot(x, y []float64) float64 {
 	return d
 }
 
-
 // This signature is made to be consistent with shift and scale.
 func fill(_ []float64, v float64, out []float64) []float64 {
 	for i := range out {
 		out[i] = v
 	}
-    return out
+	return out
 }
 
 /*
@@ -171,7 +170,6 @@ func larger(a, b int) int {
 	return b
 }
 
-
 // use_slice takes a slice x and required length,
 // returns x if it is of correct length,
 // returns a newly created slice if x is nil,
@@ -201,11 +199,10 @@ func use_dense(x *Dense, r, c int, err error) *Dense {
 	return x
 }
 
-
 func eye(k int) *Dense {
-    x := NewDense(k, k)
-    x.FillDiag(1.0)
-    return x
+	x := NewDense(k, k)
+	x.FillDiag(1.0)
+	return x
 }
 
 // A Panicker is a function that may panic.

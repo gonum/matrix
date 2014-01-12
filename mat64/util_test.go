@@ -1,10 +1,10 @@
 package mat64
 
 import (
+	"fmt"
 	"github.com/gonum/floats"
 	"math"
 	"math/rand"
-    "fmt"
 )
 
 func isUpperTriangular(a *Dense) bool {
@@ -56,20 +56,19 @@ func flatten2dense(f [][]float64) *Dense {
 }
 
 func make_dense(r, c int, data []float64) *Dense {
-    x := &Dense{}
-    x.LoadData(data, r, c)
-    return x
+	x := &Dense{}
+	x.LoadData(data, r, c)
+	return x
 }
 
 func randDense(size int, rho float64, rnd func() float64) (*Dense, error) {
 	if size == 0 {
 		return nil, ErrZeroLength
 	}
-	d := &Dense{BlasMatrix{
-		Order: BlasOrder,
-		Rows:  size, Cols: size, Stride: size,
-		Data: make([]float64, size*size),
-	}}
+	d := &Dense{
+		rows: size, cols: size, stride: size,
+		data: make([]float64, size*size),
+	}
 	for i := 0; i < size; i++ {
 		for j := 0; j < size; j++ {
 			if rand.Float64() < rho {
@@ -80,10 +79,8 @@ func randDense(size int, rho float64, rnd func() float64) (*Dense, error) {
 	return d, nil
 }
 
-
 func print_dense(x *Dense) {
-    for row := 0; row < x.mat.Rows; row++ {
-        fmt.Println(x.RowView(row))
-    }
+	for row := 0; row < x.rows; row++ {
+		fmt.Println(x.RowView(row))
+	}
 }
-
