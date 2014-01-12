@@ -37,9 +37,7 @@ func (s *S) TestQRD(c *check.C) {
 		r := qf.R()
 		q := qf.Q()
 
-		rows, cols := a.Dims()
-		newA := NewDense(rows, cols)
-		newA.Mul(q, r)
+        newA := Mult(q, r, nil)
 
 		c.Check(isOrthogonal(q), check.Equals, true, check.Commentf("Test %v: Q not orthogonal", test.name))
 		c.Check(isUpperTriangular(r), check.Equals, true, check.Commentf("Test %v: R not upper triangular", test.name))

@@ -87,6 +87,26 @@ func subtract(x, y, out []float64) []float64 {
 
 
 
+// multiply returns slice out whose elements are
+// element-wise products of x and y.
+// If out is nil, a new slice will be created;
+// otherwise, len(out) must equal len(x), as well as len(y).
+// out can be x or y, that is, the result is written to one of the input
+// slices.
+func multiply(x, y, out []float64) []float64 {
+    if len(x) != len(y) {
+        panic("input length mismatch")
+    }
+    out = use_slice(out, len(x), ErrOutLength)
+    for i, v := range x {
+        out[i] = v * y[i]
+    }
+    return out
+}
+
+
+
+
 // shift adds constant v to every element of x,
 // store the result in out and returns out.
 // If out is nil, a new slice will be allocated;

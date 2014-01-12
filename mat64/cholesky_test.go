@@ -28,14 +28,13 @@ func (s *S) TestCholesky(c *check.C) {
 
 		lt := &Dense{}
 		lt.TCopy(cf.L)
-		lc := Clone(cf.L)
 
-		lc.Mul(lc, lt)
+        lc := Mult(cf.L, lt, nil)
 		c.Check(lc.EqualsApprox(t.a, 1e-12), check.Equals, true)
 
 		x := cf.Solve(eye())
 
-		t.a.Mul(t.a, x)
+		t.a = Mult(t.a, x, nil)
 		c.Check(t.a.EqualsApprox(eye(), 1e-12), check.Equals, true)
 	}
 }

@@ -377,19 +377,27 @@ func (m *Dense) Scale(v float64) {
 
 
 
-func Add(a, b, out *Dense) *Dense {
+func element_wise_binary(a, b, out *Dense,
+    f func(a, b, out []float64) []float64) *Dense {
+
     if a.mat.Rows != b.mat.Rows || a.mat.Cols != b.mat.Cols {
         panic(ErrShape)
     }
     out = use_dense(out, a.mat.Rows, a.mat.Cols, ErrOutShape)
     if a.Contiguous() && b.Contiguous() && out.Contiguous() {
-        add(a.DataView(), b.DataView(), out.DataView())
+        f(a.DataView(), b.DataView(), out.DataView())
         return out
     }
     for row := 0; row < a.mat.Rows; row++ {
-        add(a.RowView(row), b.RowView(row), out.RowView(row))
+        f(a.RowView(row), b.RowView(row), out.RowView(row))
     }
     return out
+}
+
+
+
+func Add(a, b, out *Dense) *Dense {
+    return element_wise_binary(a, b, out, add)
 }
 
 
@@ -426,18 +434,7 @@ func (m *Dense) AddScaled(X *Dense, s float64) {
 
 
 func Subtract(a, b, out *Dense) *Dense {
-    if a.mat.Rows != b.mat.Rows || a.mat.Cols != b.mat.Cols {
-        panic(ErrShape)
-    }
-    out = use_dense(out, a.mat.Rows, a.mat.Cols, ErrOutShape)
-    if a.Contiguous() && b.Contiguous() && out.Contiguous() {
-        subtract(a.DataView(), b.DataView(), out.DataView())
-        return out
-    }
-    for row := 0; row < a.mat.Rows; row++ {
-        subtract(a.RowView(row), b.RowView(row), out.RowView(row))
-    }
-    return out
+    return element_wise_binary(a, b, out, subtract)
 }
 
 
@@ -449,33 +446,45 @@ func (m *Dense) Subtract(X *Dense) {
 
 
 
-func (m *Dense) MulElem(a, b *Dense) {
+func Elemult(a, b, out *Dense) *Dense {
+    return element_wise_binary(a, b, out, multiply)
+}
+
+
+
+func (m *Dense) Elemult(X *Dense) {
+    Elemult(m, X, m)
+}
+
+
+
+
+func Mult(a, b, out *Dense) *Dense {
 	ar, ac := a.Dims()
 	br, bc := b.Dims()
 
-	if ar != br || ac != bc {
+	if ac != br {
 		panic(ErrShape)
 	}
 
-	if m.isZero() {
-		m.mat = BlasMatrix{
-			Order:  BlasOrder,
-			Rows:   ar,
-			Cols:   ac,
-			Stride: ac,
-			Data:   use(m.mat.Data, ar*ac),
-		}
-	} else if ar != m.mat.Rows || ac != m.mat.Cols {
-		panic(ErrShape)
-	}
+    out = use_dense(out, ar, bc, ErrOutShape)
 
-    for ja, jb, jm := 0, 0, 0; ja < ar*a.mat.Stride; ja, jb, jm = ja+a.mat.Stride, jb+b.mat.Stride, jm+m.mat.Stride {
-        for i, v := range a.mat.Data[ja : ja+ac] {
-            m.mat.Data[i+jm] = v * b.mat.Data[i+jb]
-        }
+    if blasEngine == nil {
+        panic(ErrNoEngine)
     }
-    return
+    blasEngine.Dgemm(
+        BlasOrder,
+        blas.NoTrans, blas.NoTrans,
+        ar, bc, ac,
+        1.,
+        a.mat.Data, a.mat.Stride,
+        b.mat.Data, b.mat.Stride,
+        0.,
+        out.mat.Data, out.mat.Stride)
+
+    return out
 }
+
 
 
 func (m *Dense) Min() float64 {
@@ -596,47 +605,6 @@ func (m *Dense) Dot(b *Dense) float64 {
     }
     return d
 }
-
-func (m *Dense) Mul(a, b *Dense) {
-	ar, ac := a.Dims()
-	br, bc := b.Dims()
-
-	if ac != br {
-		panic(ErrShape)
-	}
-
-	var w Dense
-	if m != a && m != b {
-		w = *m
-	}
-	if w.isZero() {
-		w.mat = BlasMatrix{
-			Order:  BlasOrder,
-			Rows:   ar,
-			Cols:   bc,
-			Stride: bc,
-			Data:   use(w.mat.Data, ar*bc),
-		}
-	} else if ar != w.mat.Rows || bc != w.mat.Cols {
-		panic(ErrShape)
-	}
-
-    if blasEngine == nil {
-        panic(ErrNoEngine)
-    }
-    blasEngine.Dgemm(
-        BlasOrder,
-        blas.NoTrans, blas.NoTrans,
-        ar, bc, ac,
-        1.,
-        a.mat.Data, a.mat.Stride,
-        b.mat.Data, b.mat.Stride,
-        0.,
-        w.mat.Data, w.mat.Stride)
-    *m = w
-    return
-}
-
 
 // An ApplyFunc takes a row/column index and element value and returns some function of that tuple.
 type ApplyFunc func(r, c int, v float64) float64

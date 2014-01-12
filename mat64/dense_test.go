@@ -322,7 +322,7 @@ func (s *S) TestSub(c *check.C) {
 	}
 }
 
-func (s *S) TestMulElem(c *check.C) {
+func (s *S) TestElemult(c *check.C) {
 	for i, test := range []struct {
 		a, b, r [][]float64
 	}{
@@ -356,27 +356,21 @@ func (s *S) TestMulElem(c *check.C) {
 		b := flatten2dense(test.b)
 		r := flatten2dense(test.r)
 
-		temp := &Dense{}
-		temp.MulElem(a, b)
+        temp := Elemult(a, b, nil)
 		c.Check(temp.Equals(r), check.Equals, true, check.Commentf("Test %d: %v add %v expect %v got %v",
 			i, test.a, test.b, test.r, unflatten(temp.mat.Rows, temp.mat.Cols, temp.mat.Data)))
 
-		zero(temp.mat.Data)
-		temp.MulElem(a, b)
+		Elemult(a, b, temp)
 		c.Check(temp.Equals(r), check.Equals, true, check.Commentf("Test %d: %v add %v expect %v got %v",
 			i, test.a, test.b, test.r, unflatten(temp.mat.Rows, temp.mat.Cols, temp.mat.Data)))
 
-		// These probably warrant a better check and failure. They should never happen in the wild though.
-		temp.mat.Data = nil
-		c.Check(func() { temp.MulElem(a, b) }, check.PanicMatches, "runtime error: index out of range", check.Commentf("Test %d"))
-
-		a.MulElem(a, b)
+		a.Elemult(b)
 		c.Check(a.Equals(r), check.Equals, true, check.Commentf("Test %d: %v sub %v expect %v got %v",
 			i, test.a, test.b, test.r, unflatten(a.mat.Rows, a.mat.Cols, a.mat.Data)))
 	}
 }
 
-func (s *S) TestMul(c *check.C) {
+func (s *S) TestMult(c *check.C) {
 	for i, test := range []struct {
 		a, b, r [][]float64
 	}{
@@ -415,19 +409,13 @@ func (s *S) TestMul(c *check.C) {
 		b := flatten2dense(test.b)
 		r := flatten2dense(test.r)
 
-		temp := &Dense{}
-		temp.Mul(a, b)
+		temp := Mult(a, b, nil)
 		c.Check(temp.Equals(r), check.Equals, true, check.Commentf("Test %d: %v add %v expect %v got %v",
 			i, test.a, test.b, test.r, unflatten(temp.mat.Rows, temp.mat.Cols, temp.mat.Data)))
 
-		zero(temp.mat.Data)
-		temp.Mul(a, b)
+		Mult(a, b, temp)
 		c.Check(temp.Equals(r), check.Equals, true, check.Commentf("Test %d: %v sub %v expect %v got %v",
 			i, test.a, test.b, test.r, unflatten(a.mat.Rows, a.mat.Cols, a.mat.Data)))
-
-		// These probably warrant a better check and failure. They should never happen in the wild though.
-		temp.mat.Data = nil
-		c.Check(func() { temp.Mul(a, b) }, check.PanicMatches, "cblas: index of c out of range", check.Commentf("Test %d"))
 	}
 }
 
@@ -830,9 +818,7 @@ func denseMulBench(b *testing.B, size int, rho float64) {
 	d, _ := randDense(size, rho, rand.NormFloat64)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		var n Dense
-		n.Mul(a, d)
-		wd = &n
+        wd = Mult(a, d, nil)
 	}
 }
 
@@ -848,6 +834,6 @@ func densePreMulBench(b *testing.B, size int, rho float64) {
 	d, _ := randDense(size, rho, rand.NormFloat64)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		wd.Mul(a, d)
+		wd = Mult(a, d, nil)
 	}
 }
