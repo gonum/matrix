@@ -4,6 +4,7 @@ import (
 	"github.com/gonum/floats"
 	"math"
 	"math/rand"
+    "fmt"
 )
 
 func isUpperTriangular(a *Dense) bool {
@@ -55,15 +56,9 @@ func flatten2dense(f [][]float64) *Dense {
 }
 
 func make_dense(r, c int, data []float64) *Dense {
-	return MakeDense(r, c, data)
-}
-
-func eye() *Dense {
-	return make_dense(3, 3, []float64{
-		1, 0, 0,
-		0, 1, 0,
-		0, 0, 1,
-	})
+    x := &Dense{}
+    x.LoadData(data, r, c)
+    return x
 }
 
 func randDense(size int, rho float64, rnd func() float64) (*Dense, error) {
@@ -84,3 +79,11 @@ func randDense(size int, rho float64, rnd func() float64) (*Dense, error) {
 	}
 	return d, nil
 }
+
+
+func print_dense(x *Dense) {
+    for row := 0; row < x.mat.Rows; row++ {
+        fmt.Println(x.RowView(row))
+    }
+}
+

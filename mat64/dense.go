@@ -33,20 +33,16 @@ func NewDense(r, c int) *Dense {
 	}}
 }
 
-// MakeDense returns a Dense (not *Dense) that wraps the provided
-// data, the length of which must be compatible with
-// the required dimensions of the Dense.
-func MakeDense(r, c int, data []float64) *Dense {
+func (m *Dense) LoadData(data []float64, r, c int) {
 	if len(data) != r*c {
 		panic(ErrInLength)
 	}
-	return &Dense{BlasMatrix{
-		Order:  BlasOrder,
-		Rows:   r,
-		Cols:   c,
-		Stride: c,
-		Data:   data,
-	}}
+    m.mat = BlasMatrix{
+        Order: BlasOrder,
+        Rows: r,
+        Cols: c,
+        Stride: c,
+        Data: data}
 }
 
 func (m *Dense) LoadBlas(b BlasMatrix) {
@@ -221,14 +217,47 @@ func (m *Dense) SetData(v []float64) {
 	}
 }
 
+
+func (m *Dense) DiagCopy(out []float64) []float64 {
+    if m.mat.Rows != m.mat.Cols {
+        panic(ErrSquare)
+    }
+    out = use_slice(out, m.mat.Rows, ErrOutLength)
+    for i, j := 0, 0; i < m.mat.Rows; i += m.mat.Stride + 1 {
+        out[j] = m.mat.Data[i]
+        j++
+    }
+    return out
+}
+
+
+func (m *Dense) SetDiag(v []float64) {
+    if m.mat.Rows != m.mat.Cols {
+        panic(ErrSquare)
+    }
+    if len(v) != m.mat.Rows {
+        panic(ErrInLength)
+    }
+    for i, j := 0, 0; i < m.mat.Rows; i += m.mat.Stride + 1 {
+        m.mat.Data[i] = v[j]
+        j++
+    }
+}
+
+
+func (m *Dense) FillDiag(v float64) {
+    if m.mat.Rows != m.mat.Cols {
+        panic(ErrSquare)
+    }
+    for row, k := 0, 0; row < m.mat.Rows; row++ {
+        m.mat.Data[k] = v
+        k += m.mat.Stride + 1
+    }
+}
+
+
 func (m *Dense) Fill(v float64) {
-	if m.Contiguous() {
-		fill(m.DataView(), v)
-	} else {
-		for row := 0; row < m.mat.Rows; row++ {
-			fill(m.RowView(row), v)
-		}
-	}
+    element_wise_unary(m, v, m, fill)
 }
 
 func Copy(dest *Dense, src *Dense) {
@@ -555,7 +584,7 @@ func (m *Dense) U(a *Dense) {
 			Rows:   ar,
 			Cols:   ac,
 			Stride: ac,
-			Data:   use(m.mat.Data, ar*ac),
+			Data:   use_slice(m.mat.Data, ar*ac, ErrInLength),
 		}
 	case ar != m.mat.Rows || ac != m.mat.Cols:
 		panic(ErrShape)
@@ -591,7 +620,7 @@ func (m *Dense) L(a *Dense) {
 			Rows:   ar,
 			Cols:   ac,
 			Stride: ac,
-			Data:   use(m.mat.Data, ar*ac),
+			Data:   use_slice(m.mat.Data, ar*ac, ErrInLength),
 		}
 	case ar != m.mat.Rows || ac != m.mat.Cols:
 		panic(ErrShape)
@@ -656,22 +685,28 @@ func Det(a *Dense) float64 {
 	return LU(Clone(a)).Det()
 }
 
-// Inverse returns the inverse or pseudoinverse of the matrix a.
-func Inverse(a *Dense) *Dense {
-	m, _ := a.Dims()
-	d := make([]float64, m*m)
-	for i := 0; i < m*m; i += m + 1 {
-		d[i] = 1
-	}
-	eye := MakeDense(m, m, d)
-	return Solve(a, eye)
+
+func (m *Dense) Det() float64 {
+    return Det(m)
+}
+
+
+// Inv returns the inverse or pseudoinverse of the matrix a.
+func Inv(a *Dense, out *Dense) *Dense {
+    eye := NewDense(a.mat.Rows, a.mat.Rows)
+    eye.FillDiag(1.0)
+	return Solve(a, eye, out)
 }
 
 // Solve returns a matrix x that satisfies ax = b.
-func Solve(a, b *Dense) (x *Dense) {
-	m, n := a.Dims()
-	if m == n {
-		return LU(Clone(a)).Solve(Clone(b))
-	}
-	return QR(Clone(a)).Solve(Clone(b))
+// TODO: check LU and QR to see if output allocation can be avoided
+// when output receiving matrix is provided.
+func Solve(a, b, out *Dense) *Dense {
+    out = use_dense(out, a.mat.Cols, b.mat.Cols, ErrOutShape)
+	if a.mat.Rows == a.mat.Cols {
+		Copy(out, LU(Clone(a)).Solve(Clone(b)))
+	} else {
+        Copy(out, QR(Clone(a)).Solve(Clone(b)))
+    }
+    return out
 }

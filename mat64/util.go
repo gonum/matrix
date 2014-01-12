@@ -1,24 +1,5 @@
 package mat64
 
-func fill(x []float64, v float64) {
-	for i := range x {
-		x[i] = v
-	}
-}
-
-func zero(x []float64) {
-	fill(x, 0.0)
-}
-
-/*
-func zero(f []float64) {
-	f[0] = 0
-	for i := 1; i < len(f); {
-		i += copy(f[i:], f[:i])
-	}
-}
-*/
-
 // add returns slice out whose elements are
 // element-wise sums of x and y.
 // If out is nil, a new slice will be created;
@@ -98,6 +79,28 @@ func dot(x, y []float64) float64 {
 	return d
 }
 
+
+// This signature is made to be consistent with shift and scale.
+func fill(_ []float64, v float64, out []float64) []float64 {
+	for i := range out {
+		out[i] = v
+	}
+    return out
+}
+
+/*
+func fill(_ []float64, v float64, out []float64) []float64 {
+	out[0] = v
+	for i, n := 1, len(out); i < n; {
+		i += copy(out[i:], out[:i])
+	}
+}
+*/
+
+func zero(x []float64) {
+	fill(nil, 0.0, x)
+}
+
 // shift adds constant v to every element of x,
 // store the result in out and returns out.
 // If out is nil, a new slice will be allocated;
@@ -168,14 +171,6 @@ func larger(a, b int) int {
 	return b
 }
 
-// use returns a float64 slice with l elements, using f if it
-// has the necessary capacity, otherwise creating a new slice.
-func use(f []float64, l int) []float64 {
-	if l < cap(f) {
-		return f[:l]
-	}
-	return make([]float64, l)
-}
 
 // use_slice takes a slice x and required length,
 // returns x if it is of correct length,
@@ -204,6 +199,13 @@ func use_dense(x *Dense, r, c int, err error) *Dense {
 		panic(err)
 	}
 	return x
+}
+
+
+func eye(k int) *Dense {
+    x := NewDense(k, k)
+    x.FillDiag(1.0)
+    return x
 }
 
 // A Panicker is a function that may panic.

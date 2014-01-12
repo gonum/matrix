@@ -61,9 +61,9 @@ func (s *S) TestLUD(c *check.C) {
 		l = Mult(l, u, nil)
 		c.Check(l.EqualsApprox(pivotRows(Clone(t.a), lf.Pivot), 1e-12), check.Equals, true)
 
-		x := lf.Solve(eye())
+		x := lf.Solve(eye(3))
 		t.a = Mult(t.a, x, nil)
-		c.Check(t.a.EqualsApprox(eye(), 1e-12), check.Equals, true)
+		c.Check(t.a.EqualsApprox(eye(3), 1e-12), check.Equals, true)
 	}
 }
 
@@ -120,12 +120,12 @@ func (s *S) TestLUDGaussian(c *check.C) {
 		l = Mult(l, u, nil)
 		c.Check(l.EqualsApprox(pivotRows(Clone(t.a), lf.Pivot), 1e-12), check.Equals, true)
 
-		aInv := Inverse(t.a)
+		aInv := Inv(t.a, nil)
 		aInv = Mult(aInv, t.a, nil)
-		c.Check(aInv.EqualsApprox(eye(), 1e-12), check.Equals, true)
+		c.Check(aInv.EqualsApprox(eye(3), 1e-12), check.Equals, true)
 
-		x := lf.Solve(eye())
+		x := lf.Solve(eye(3))
 		t.a = Mult(t.a, x, nil)
-		c.Check(t.a.EqualsApprox(eye(), 1e-12), check.Equals, true)
+		c.Check(t.a.EqualsApprox(eye(3), 1e-12), check.Equals, true)
 	}
 }
