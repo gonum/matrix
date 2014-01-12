@@ -11,7 +11,7 @@ func isUpperTriangular(a *Dense) bool {
 	rows, cols := a.Dims()
 	for c := 0; c < cols-1; c++ {
 		for r := c + 1; r < rows; r++ {
-			if math.Abs(a.At(r, c)) > 1e-14 {
+			if math.Abs(a.Get(r, c)) > 1e-14 {
 				return false
 			}
 		}
@@ -25,8 +25,8 @@ func isOrthogonal(a *Dense) bool {
 	col2 := make([]float64, rows)
 	for i := 0; i < cols-1; i++ {
 		for j := i + 1; j < cols; j++ {
-			a.ColCopy(i, col1)
-			a.ColCopy(j, col2)
+			a.GetCol(i, col1)
+			a.GetCol(j, col2)
 			dot := floats.Dot(col1, col2)
 			if math.Abs(dot) > 1e-14 {
 				return false

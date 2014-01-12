@@ -77,7 +77,7 @@ func (m *Dense) validate_col_idx(c int) {
 // call DataView to get a view of the data slice and work on it directly.
 func (m *Dense) Contiguous() bool { return m.cols == m.stride }
 
-func (m *Dense) At(r, c int) float64 {
+func (m *Dense) Get(r, c int) float64 {
 	return m.data[r*m.stride+c]
 }
 
@@ -91,7 +91,7 @@ func (m *Dense) RowView(r int) []float64 {
 	return m.data[k : k+m.cols]
 }
 
-func (m *Dense) RowCopy(r int, row []float64) []float64 {
+func (m *Dense) GetRow(r int, row []float64) []float64 {
 	row = use_slice(row, m.cols, ErrOutLength)
 	copy(row, m.RowView(r))
 	return row
@@ -107,7 +107,7 @@ func (m *Dense) SetRow(r int, v []float64) {
 // ColView
 // There is no ColView b/c of row-major.
 
-func (m *Dense) ColCopy(c int, col []float64) []float64 {
+func (m *Dense) GetCol(c int, col []float64) []float64 {
 	m.validate_col_idx(c)
 	col = use_slice(col, m.rows, ErrOutLength)
 
@@ -148,7 +148,7 @@ func (m *Dense) SubmatrixView(i, j, r, c int) *Dense {
 	return &out
 }
 
-func (m *Dense) SubmatrixCopy(i, j, r, c int, out *Dense) *Dense {
+func (m *Dense) GetSubmatrix(i, j, r, c int, out *Dense) *Dense {
 	out = use_dense(out, r, c, ErrOutShape)
 	Copy(out, m.SubmatrixView(i, j, r, c))
 	return out
@@ -172,11 +172,11 @@ func (m *Dense) DataView() []float64 {
 	// TODO: return nil here or panic?
 }
 
-// DataCopy copies out all elements of the matrix, row by row.
+// GetData copies out all elements of the matrix, row by row.
 // If out is nil, a slice is allocated;
 // otherwise out must have the right length.
 // The copied slice is returned.
-func (m *Dense) DataCopy(out []float64) []float64 {
+func (m *Dense) GetData(out []float64) []float64 {
 	out = use_slice(out, m.rows*m.cols, ErrOutLength)
 	if m.Contiguous() {
 		copy(out, m.DataView())
@@ -211,7 +211,7 @@ func (m *Dense) SetData(v []float64) {
 	}
 }
 
-func (m *Dense) DiagCopy(out []float64) []float64 {
+func (m *Dense) GetDiag(out []float64) []float64 {
 	if m.rows != m.cols {
 		panic(ErrSquare)
 	}
@@ -473,7 +473,7 @@ func (m *Dense) Norm(ord float64) float64 {
 		col := make([]float64, m.rows)
 		for i := 0; i < m.cols; i++ {
 			var s float64
-			for _, e := range m.ColCopy(i, col) {
+			for _, e := range m.GetCol(i, col) {
 				s += e
 			}
 			n = math.Max(math.Abs(s), n)
@@ -491,7 +491,7 @@ func (m *Dense) Norm(ord float64) float64 {
 		col := make([]float64, m.rows)
 		for i := 0; i < m.cols; i++ {
 			var s float64
-			for _, e := range m.ColCopy(i, col) {
+			for _, e := range m.GetCol(i, col) {
 				s += e
 			}
 			n = math.Min(math.Abs(s), n)

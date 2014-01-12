@@ -189,7 +189,7 @@ func (s *S) TestRowCol(c *check.C) {
 			for j := range col {
 				col[j] = float64(ci + 1 + j*a.cols)
 			}
-			c.Check(a.ColCopy(ci, nil), check.DeepEquals, col, check.Commentf("Test %d", i))
+			c.Check(a.GetCol(ci, nil), check.DeepEquals, col, check.Commentf("Test %d", i))
 		}
 	}
 }
@@ -436,12 +436,12 @@ func (s *S) TestLU(c *check.C) {
 			for n := 0; n < size; n++ {
 				switch {
 				case m < n: // Upper triangular matrix.
-					c.Check(u.At(m, n), check.Equals, r.At(m, n), check.Commentf("Test #%d At(%d, %d)", i, m, n))
+					c.Check(u.Get(m, n), check.Equals, r.Get(m, n), check.Commentf("Test #%d Get(%d, %d)", i, m, n))
 				case m == n: // Diagonal matrix.
-					c.Check(u.At(m, n), check.Equals, l.At(m, n), check.Commentf("Test #%d At(%d, %d)", i, m, n))
-					c.Check(u.At(m, n), check.Equals, r.At(m, n), check.Commentf("Test #%d At(%d, %d)", i, m, n))
+					c.Check(u.Get(m, n), check.Equals, l.Get(m, n), check.Commentf("Test #%d Get(%d, %d)", i, m, n))
+					c.Check(u.Get(m, n), check.Equals, r.Get(m, n), check.Commentf("Test #%d Get(%d, %d)", i, m, n))
 				case m < n: // Lower triangular matrix.
-					c.Check(l.At(m, n), check.Equals, r.At(m, n), check.Commentf("Test #%d At(%d, %d)", i, m, n))
+					c.Check(l.Get(m, n), check.Equals, r.Get(m, n), check.Commentf("Test #%d Get(%d, %d)", i, m, n))
 				}
 			}
 		}
@@ -452,11 +452,11 @@ func (s *S) TestLU(c *check.C) {
 			for n := 0; n < size; n++ {
 				switch {
 				case m < n: // Upper triangular matrix.
-					c.Check(rc.At(m, n), check.Equals, r.At(m, n), check.Commentf("Test #%d At(%d, %d)", i, m, n))
+					c.Check(rc.Get(m, n), check.Equals, r.Get(m, n), check.Commentf("Test #%d Get(%d, %d)", i, m, n))
 				case m == n: // Diagonal matrix.
-					c.Check(rc.At(m, n), check.Equals, r.At(m, n), check.Commentf("Test #%d At(%d, %d)", i, m, n))
+					c.Check(rc.Get(m, n), check.Equals, r.Get(m, n), check.Commentf("Test #%d Get(%d, %d)", i, m, n))
 				case m > n: // Lower triangular matrix.
-					c.Check(rc.At(m, n), check.Equals, 0., check.Commentf("Test #%d At(%d, %d)", i, m, n))
+					c.Check(rc.Get(m, n), check.Equals, 0., check.Commentf("Test #%d Get(%d, %d)", i, m, n))
 				}
 			}
 		}
@@ -467,11 +467,11 @@ func (s *S) TestLU(c *check.C) {
 			for n := 0; n < size; n++ {
 				switch {
 				case m < n: // Upper triangular matrix.
-					c.Check(rc.At(m, n), check.Equals, 0., check.Commentf("Test #%d At(%d, %d)", i, m, n))
+					c.Check(rc.Get(m, n), check.Equals, 0., check.Commentf("Test #%d Get(%d, %d)", i, m, n))
 				case m == n: // Diagonal matrix.
-					c.Check(rc.At(m, n), check.Equals, r.At(m, n), check.Commentf("Test #%d At(%d, %d)", i, m, n))
+					c.Check(rc.Get(m, n), check.Equals, r.Get(m, n), check.Commentf("Test #%d Get(%d, %d)", i, m, n))
 				case m > n: // Lower triangular matrix.
-					c.Check(rc.At(m, n), check.Equals, r.At(m, n), check.Commentf("Test #%d At(%d, %d)", i, m, n))
+					c.Check(rc.Get(m, n), check.Equals, r.Get(m, n), check.Commentf("Test #%d Get(%d, %d)", i, m, n))
 				}
 			}
 		}

@@ -45,7 +45,7 @@ func LU(a *Dense) LUFactors {
 
 		// Make a copy of the j-th column to localize references.
 		for i := 0; i < m; i++ {
-			luColj[i] = lu.At(i, j)
+			luColj[i] = lu.Get(i, j)
 		}
 
 		// Apply previous transformations.
@@ -72,8 +72,8 @@ func LU(a *Dense) LUFactors {
 		}
 		if p != j {
 			for k := 0; k < n; k++ {
-				t := lu.At(p, k)
-				lu.Set(p, k, lu.At(j, k))
+				t := lu.Get(p, k)
+				lu.Set(p, k, lu.Get(j, k))
 				lu.Set(j, k, t)
 			}
 			piv[p], piv[j] = piv[j], piv[p]
@@ -81,9 +81,9 @@ func LU(a *Dense) LUFactors {
 		}
 
 		// Compute multipliers.
-		if j < m && lu.At(j, j) != 0 {
+		if j < m && lu.Get(j, j) != 0 {
 			for i := j + 1; i < m; i++ {
-				lu.Set(i, j, lu.At(i, j)/lu.At(j, j))
+				lu.Set(i, j, lu.Get(i, j)/lu.Get(j, j))
 			}
 		}
 	}
@@ -121,7 +121,7 @@ func LUGaussian(a *Dense) LUFactors {
 		// Find pivot.
 		p := k
 		for i := k + 1; i < m; i++ {
-			if math.Abs(lu.At(i, k)) > math.Abs(lu.At(p, k)) {
+			if math.Abs(lu.Get(i, k)) > math.Abs(lu.Get(p, k)) {
 				p = i
 			}
 		}
@@ -129,8 +129,8 @@ func LUGaussian(a *Dense) LUFactors {
 		// Exchange if necessary.
 		if p != k {
 			for j := 0; j < n; j++ {
-				t := lu.At(p, j)
-				lu.Set(p, j, lu.At(k, j))
+				t := lu.Get(p, j)
+				lu.Set(p, j, lu.Get(k, j))
 				lu.Set(k, j, t)
 			}
 			piv[p], piv[k] = piv[k], piv[p]
@@ -138,11 +138,11 @@ func LUGaussian(a *Dense) LUFactors {
 		}
 
 		// Compute multipliers and eliminate k-th column.
-		if lu.At(k, k) != 0 {
+		if lu.Get(k, k) != 0 {
 			for i := k + 1; i < m; i++ {
-				lu.Set(i, k, lu.At(i, k)/lu.At(k, k))
+				lu.Set(i, k, lu.Get(i, k)/lu.Get(k, k))
 				for j := k + 1; j < n; j++ {
-					lu.Set(i, j, lu.At(i, j)-lu.At(i, k)*lu.At(k, j))
+					lu.Set(i, j, lu.Get(i, j)-lu.Get(i, k)*lu.Get(k, j))
 				}
 			}
 		}
@@ -157,7 +157,7 @@ func (f LUFactors) IsSingular() bool {
 	lu := f.LU
 	_, n := lu.Dims()
 	for j := 0; j < n; j++ {
-		if lu.At(j, j) == 0 {
+		if lu.Get(j, j) == 0 {
 			return true
 		}
 	}
@@ -172,7 +172,7 @@ func (f LUFactors) L() *Dense {
 	for i := 0; i < m; i++ {
 		for j := 0; j < n; j++ {
 			if i > j {
-				l.Set(i, j, lu.At(i, j))
+				l.Set(i, j, lu.Get(i, j))
 			} else if i == j {
 				l.Set(i, j, 1)
 			}
@@ -189,7 +189,7 @@ func (f LUFactors) U() *Dense {
 	for i := 0; i < n; i++ {
 		for j := 0; j < n; j++ {
 			if i <= j {
-				u.Set(i, j, lu.At(i, j))
+				u.Set(i, j, lu.Get(i, j))
 			}
 		}
 	}
@@ -206,7 +206,7 @@ func (f LUFactors) Det() float64 {
 	}
 	d := float64(sign)
 	for j := 0; j < n; j++ {
-		d *= lu.At(j, j)
+		d *= lu.Get(j, j)
 	}
 	return d
 }
@@ -233,7 +233,7 @@ func (f LUFactors) Solve(b *Dense) (x *Dense) {
 	for k := 0; k < n; k++ {
 		for i := k + 1; i < n; i++ {
 			for j := 0; j < nx; j++ {
-				x.Set(i, j, x.At(i, j)-x.At(k, j)*lu.At(i, k))
+				x.Set(i, j, x.Get(i, j)-x.Get(k, j)*lu.Get(i, k))
 			}
 		}
 	}
@@ -241,11 +241,11 @@ func (f LUFactors) Solve(b *Dense) (x *Dense) {
 	// Solve U*X = Y;
 	for k := n - 1; k >= 0; k-- {
 		for j := 0; j < nx; j++ {
-			x.Set(k, j, x.At(k, j)/lu.At(k, k))
+			x.Set(k, j, x.Get(k, j)/lu.Get(k, k))
 		}
 		for i := 0; i < k; i++ {
 			for j := 0; j < nx; j++ {
-				x.Set(i, j, x.At(i, j)-x.At(k, j)*lu.At(i, k))
+				x.Set(i, j, x.Get(i, j)-x.Get(k, j)*lu.Get(i, k))
 			}
 		}
 	}
@@ -260,7 +260,7 @@ func pivotRows(a *Dense, piv []int) *Dense {
 	for to, from := range piv {
 		for to != from && !visit[from] {
 			visit[from], visit[to] = true, true
-			a.RowCopy(from, fromRow)
+			a.GetRow(from, fromRow)
 			copy(a.RowView(from), a.RowView(to))
 			copy(a.RowView(to), fromRow)
 			to, from = from, piv[from]

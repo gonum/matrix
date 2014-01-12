@@ -38,28 +38,28 @@ func QR(a *Dense) QRFactor {
 		// Compute 2-norm of k-th column without under/overflow.
 		var norm float64
 		for i := k; i < m; i++ {
-			norm = math.Hypot(norm, qr.At(i, k))
+			norm = math.Hypot(norm, qr.Get(i, k))
 		}
 
 		if norm != 0 {
 			// Form k-th Householder vector.
-			if qr.At(k, k) < 0 {
+			if qr.Get(k, k) < 0 {
 				norm = -norm
 			}
 			for i := k; i < m; i++ {
-				qr.Set(i, k, qr.At(i, k)/norm)
+				qr.Set(i, k, qr.Get(i, k)/norm)
 			}
-			qr.Set(k, k, qr.At(k, k)+1)
+			qr.Set(k, k, qr.Get(k, k)+1)
 
 			// Apply transformation to remaining columns.
 			for j := k + 1; j < n; j++ {
 				var s float64
 				for i := k; i < m; i++ {
-					s += qr.At(i, k) * qr.At(i, j)
+					s += qr.Get(i, k) * qr.Get(i, j)
 				}
-				s /= -qr.At(k, k)
+				s /= -qr.Get(k, k)
 				for i := k; i < m; i++ {
-					qr.Set(i, j, qr.At(i, j)+s*qr.At(i, k))
+					qr.Set(i, j, qr.Get(i, j)+s*qr.Get(i, k))
 				}
 			}
 		}
@@ -88,7 +88,7 @@ func (f QRFactor) H() *Dense {
 	for i := 0; i < m; i++ {
 		for j := 0; j < n; j++ {
 			if i >= j {
-				h.Set(i, j, qr.At(i, j))
+				h.Set(i, j, qr.Get(i, j))
 			}
 		}
 	}
@@ -103,7 +103,7 @@ func (f QRFactor) R() *Dense {
 	for i, v := range rDiag[:n] {
 		for j := 0; j < n; j++ {
 			if i < j {
-				r.Set(i, j, qr.At(i, j))
+				r.Set(i, j, qr.Get(i, j))
 			} else if i == j {
 				r.Set(i, j, v)
 			}
@@ -121,14 +121,14 @@ func (f QRFactor) Q() *Dense {
 	for k := n - 1; k >= 0; k-- {
 		q.Set(k, k, 1)
 		for j := k; j < n; j++ {
-			if qr.At(k, k) != 0 {
+			if qr.Get(k, k) != 0 {
 				var s float64
 				for i := k; i < m; i++ {
-					s += qr.At(i, k) * q.At(i, j)
+					s += qr.Get(i, k) * q.Get(i, j)
 				}
-				s /= -qr.At(k, k)
+				s /= -qr.Get(k, k)
 				for i := k; i < m; i++ {
-					q.Set(i, j, q.At(i, j)+s*qr.At(i, k))
+					q.Set(i, j, q.Get(i, j)+s*qr.Get(i, k))
 				}
 			}
 		}
@@ -157,12 +157,12 @@ func (f QRFactor) Solve(b *Dense) (x *Dense) {
 		for j := 0; j < bn; j++ {
 			var s float64
 			for i := k; i < m; i++ {
-				s += qr.At(i, k) * b.At(i, j)
+				s += qr.Get(i, k) * b.Get(i, j)
 			}
-			s /= -qr.At(k, k)
+			s /= -qr.Get(k, k)
 
 			for i := k; i < m; i++ {
-				b.Set(i, j, b.At(i, j)+s*qr.At(i, k))
+				b.Set(i, j, b.Get(i, j)+s*qr.Get(i, k))
 			}
 		}
 	}
@@ -170,11 +170,11 @@ func (f QRFactor) Solve(b *Dense) (x *Dense) {
 	// Solve R*X = Y;
 	for k := n - 1; k >= 0; k-- {
 		for j := 0; j < bn; j++ {
-			b.Set(k, j, b.At(k, j)/rDiag[k])
+			b.Set(k, j, b.Get(k, j)/rDiag[k])
 		}
 		for i := 0; i < k; i++ {
 			for j := 0; j < bn; j++ {
-				b.Set(i, j, b.At(i, j)-b.At(k, j)*qr.At(i, k))
+				b.Set(i, j, b.Get(i, j)-b.Get(k, j)*qr.Get(i, k))
 			}
 		}
 	}
