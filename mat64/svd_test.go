@@ -130,7 +130,7 @@ func (s *S) TestSVD(c *check.C) {
 		if t.wantu && t.wantv {
 			c.Assert(svd.U, check.NotNil)
 			c.Assert(svd.V, check.NotNil)
-            vt := T(svd.V, nil)
+			vt := T(svd.V, nil)
 			svd.U = Mult(svd.U, s, nil)
 			svd.U = Mult(svd.U, vt, nil)
 			c.Check(svd.U.EqualsApprox(t.a, 1e-12), check.Equals, true)

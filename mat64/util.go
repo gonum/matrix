@@ -1,19 +1,14 @@
 package mat64
 
-
-
 func fill(x []float64, v float64) {
-    for i := range x {
-        x[i] = v
-    }
+	for i := range x {
+		x[i] = v
+	}
 }
-
-
 
 func zero(x []float64) {
-    fill(x, 0.0)
+	fill(x, 0.0)
 }
-
 
 /*
 func zero(f []float64) {
@@ -24,9 +19,6 @@ func zero(f []float64) {
 }
 */
 
-
-
-
 // add returns slice out whose elements are
 // element-wise sums of x and y.
 // If out is nil, a new slice will be created;
@@ -34,18 +26,15 @@ func zero(f []float64) {
 // out can be x or y, that is, the result is written to one of the input
 // slices.
 func add(x, y, out []float64) []float64 {
-    if len(x) != len(y) {
-        panic("input length mismatch")
-    }
-    out = use_slice(out, len(x), ErrOutLength)
-    for i, v := range x {
-        out[i] = v + y[i]
-    }
-    return out
+	if len(x) != len(y) {
+		panic("input length mismatch")
+	}
+	out = use_slice(out, len(x), ErrOutLength)
+	for i, v := range x {
+		out[i] = v + y[i]
+	}
+	return out
 }
-
-
-
 
 // add_scaled returns slice out whose elements are
 // element-wise sums of x and scaled y.
@@ -54,18 +43,15 @@ func add(x, y, out []float64) []float64 {
 // out can be x or y, that is, the result is written to one of the input
 // slices.
 func add_scaled(x, y []float64, s float64, out []float64) []float64 {
-    if len(x) != len(y) {
-        panic("input length mismatch")
-    }
-    out = use_slice(out, len(x), ErrOutLength)
-    for i, v := range x {
-        out[i] = v + y[i] * s
-    }
-    return out
+	if len(x) != len(y) {
+		panic("input length mismatch")
+	}
+	out = use_slice(out, len(x), ErrOutLength)
+	for i, v := range x {
+		out[i] = v + y[i]*s
+	}
+	return out
 }
-
-
-
 
 // subtract returns slice out whose elements are
 // element-wise differences of x and y.
@@ -74,18 +60,15 @@ func add_scaled(x, y []float64, s float64, out []float64) []float64 {
 // out can be x or y, that is, the result is written to one of the input
 // slices.
 func subtract(x, y, out []float64) []float64 {
-    if len(x) != len(y) {
-        panic("input length mismatch")
-    }
-    out = use_slice(out, len(x), ErrOutLength)
-    for i, v := range x {
-        out[i] = v - y[i]
-    }
-    return out
+	if len(x) != len(y) {
+		panic("input length mismatch")
+	}
+	out = use_slice(out, len(x), ErrOutLength)
+	for i, v := range x {
+		out[i] = v - y[i]
+	}
+	return out
 }
-
-
-
 
 // multiply returns slice out whose elements are
 // element-wise products of x and y.
@@ -94,32 +77,26 @@ func subtract(x, y, out []float64) []float64 {
 // out can be x or y, that is, the result is written to one of the input
 // slices.
 func multiply(x, y, out []float64) []float64 {
-    if len(x) != len(y) {
-        panic("input length mismatch")
-    }
-    out = use_slice(out, len(x), ErrOutLength)
-    for i, v := range x {
-        out[i] = v * y[i]
-    }
-    return out
+	if len(x) != len(y) {
+		panic("input length mismatch")
+	}
+	out = use_slice(out, len(x), ErrOutLength)
+	for i, v := range x {
+		out[i] = v * y[i]
+	}
+	return out
 }
-
-
-
 
 func dot(x, y []float64) float64 {
-    if len(x) != len(y) {
-        panic(ErrLength)
-    }
-    d := 0.0
-    for i, v := range x {
-        d += v * y[i]
-    }
-    return d
+	if len(x) != len(y) {
+		panic(ErrLength)
+	}
+	d := 0.0
+	for i, v := range x {
+		d += v * y[i]
+	}
+	return d
 }
-
-
-
 
 // shift adds constant v to every element of x,
 // store the result in out and returns out.
@@ -128,14 +105,12 @@ func dot(x, y []float64) float64 {
 // out can be x itself, in which case elements
 // of x are incremented by the amount v.
 func shift(x []float64, v float64, out []float64) []float64 {
-    out = use_slice(out, len(x), ErrOutLength)
-    for i, val := range x {
-        out[i] = val + v
-    }
-    return out
+	out = use_slice(out, len(x), ErrOutLength)
+	for i, val := range x {
+		out[i] = val + v
+	}
+	return out
 }
-
-
 
 // scale multiplies constant v to every element of x,
 // store the result in out and returns out.
@@ -144,51 +119,40 @@ func shift(x []float64, v float64, out []float64) []float64 {
 // out can be x itself, in which case elements
 // of x are scaled by the amount v.
 func scale(x []float64, v float64, out []float64) []float64 {
-    out = use_slice(out, len(x), ErrOutLength)
-    for i, val := range x {
-        out[i] = val * v
-    }
-    return out
+	out = use_slice(out, len(x), ErrOutLength)
+	for i, val := range x {
+		out[i] = val * v
+	}
+	return out
 }
-
-
-
 
 func min(x []float64) float64 {
-    v := x[0]
-    for _, val := range x {
-        if val < v {
-            v = val
-        }
-    }
-    return v
+	v := x[0]
+	for _, val := range x {
+		if val < v {
+			v = val
+		}
+	}
+	return v
 }
-
-
 
 func max(x []float64) float64 {
-    v := x[0]
-    for _, val := range x {
-        if val > v {
-            v = val
-        }
-    }
-    return v
+	v := x[0]
+	for _, val := range x {
+		if val > v {
+			v = val
+		}
+	}
+	return v
 }
-
-
-
 
 func sum(x []float64) float64 {
-    v := 0.0
-    for _, val := range x {
-        v += val
-    }
-    return v
+	v := 0.0
+	for _, val := range x {
+		v += val
+	}
+	return v
 }
-
-
-
 
 func smaller(a, b int) int {
 	if a < b {
@@ -204,8 +168,6 @@ func larger(a, b int) int {
 	return b
 }
 
-
-
 // use returns a float64 slice with l elements, using f if it
 // has the necessary capacity, otherwise creating a new slice.
 func use(f []float64, l int) []float64 {
@@ -215,38 +177,34 @@ func use(f []float64, l int) []float64 {
 	return make([]float64, l)
 }
 
-
 // use_slice takes a slice x and required length,
 // returns x if it is of correct length,
 // returns a newly created slice if x is nil,
 // and panic if x is non-nil but has wrong length.
 func use_slice(x []float64, n int, err error) []float64 {
-    if x == nil {
-        return make([]float64, n)
-    }
-    if len(x) != n {
-        panic(err)
-    }
-    return x
+	if x == nil {
+		return make([]float64, n)
+	}
+	if len(x) != n {
+		panic(err)
+	}
+	return x
 }
-
 
 // use_dense takes a Dense x and required shape,
 // returns x if it is of correct shape,
 // returns a newly created Dense if x is nil,
 // and panic if x is non-nil but has wrong shape.
 func use_dense(x *Dense, r, c int, err error) *Dense {
-    if x == nil {
-        return NewDense(r, c)
-    }
-    m, n := x.Dims()
-    if m != r || n != c {
-        panic(err)
-    }
-    return x
+	if x == nil {
+		return NewDense(r, c)
+	}
+	m, n := x.Dims()
+	if m != r || n != c {
+		panic(err)
+	}
+	return x
 }
-
-
 
 // A Panicker is a function that may panic.
 type Panicker func()
@@ -312,7 +270,7 @@ const (
 	ErrPivot           = Error("mat64: malformed pivot list")
 	ErrIllegalOrder    = Error("mat64: illegal order")
 	ErrNoEngine        = Error("mat64: no blas engine registered: call Register()")
-    ErrInLength        = Error("mat64: input data has wrong length")
-    ErrOutLength       = Error("mat64: output receiving slice has wrong length")
-    ErrOutShape        = Error("mat64: output receiving matrix has wrong shape")
+	ErrInLength        = Error("mat64: input data has wrong length")
+	ErrOutLength       = Error("mat64: output receiving slice has wrong length")
+	ErrOutShape        = Error("mat64: output receiving matrix has wrong shape")
 )

@@ -26,10 +26,10 @@ func Cholesky(a *Dense) CholeskyFactor {
 	// Main loop.
 	for j := 0; j < n; j++ {
 		var d float64
-        lRowj := l.RowView(j)
+		lRowj := l.RowView(j)
 		for k := 0; k < j; k++ {
 			var s float64
-            lRowk := l.RowView(k)
+			lRowk := l.RowView(k)
 			for i := 0; i < k; i++ {
 				s += lRowk[i] * lRowj[i]
 			}

@@ -1,11 +1,10 @@
 package mat64
 
 import (
-    "math"
-    "math/rand"
-    "github.com/gonum/floats"
+	"github.com/gonum/floats"
+	"math"
+	"math/rand"
 )
-
 
 func isUpperTriangular(a *Dense) bool {
 	rows, cols := a.Dims()
@@ -36,7 +35,6 @@ func isOrthogonal(a *Dense) bool {
 	return true
 }
 
-
 func flatten(f [][]float64) (r, c int, d []float64) {
 	for _, r := range f {
 		d = append(d, r...)
@@ -52,17 +50,13 @@ func unflatten(r, c int, d []float64) [][]float64 {
 	return m
 }
 
-
 func flatten2dense(f [][]float64) *Dense {
-    return make_dense(flatten(f))
+	return make_dense(flatten(f))
 }
-
 
 func make_dense(r, c int, data []float64) *Dense {
-    return MakeDense(r, c, data)
+	return MakeDense(r, c, data)
 }
-
-
 
 func eye() *Dense {
 	return make_dense(3, 3, []float64{
@@ -71,7 +65,6 @@ func eye() *Dense {
 		0, 0, 1,
 	})
 }
-
 
 func randDense(size int, rho float64, rnd func() float64) (*Dense, error) {
 	if size == 0 {

@@ -308,7 +308,7 @@ func (s *S) TestSub(c *check.C) {
 		b := flatten2dense(test.b)
 		r := flatten2dense(test.r)
 
-        temp := Subtract(a, b, nil)
+		temp := Subtract(a, b, nil)
 		c.Check(temp.Equals(r), check.Equals, true, check.Commentf("Test %d: %v add %v expect %v got %v",
 			i, test.a, test.b, test.r, unflatten(temp.mat.Rows, temp.mat.Cols, temp.mat.Data)))
 
@@ -356,7 +356,7 @@ func (s *S) TestElemult(c *check.C) {
 		b := flatten2dense(test.b)
 		r := flatten2dense(test.r)
 
-        temp := Elemult(a, b, nil)
+		temp := Elemult(a, b, nil)
 		c.Check(temp.Equals(r), check.Equals, true, check.Commentf("Test %d: %v add %v expect %v got %v",
 			i, test.a, test.b, test.r, unflatten(temp.mat.Rows, temp.mat.Cols, temp.mat.Data)))
 
@@ -510,10 +510,10 @@ func (s *S) TestTranspose(c *check.C) {
 		a := flatten2dense(test.a)
 		t := flatten2dense(test.t)
 
-        r := T(a, nil)
+		r := T(a, nil)
 		c.Check(r.Equals(t), check.Equals, true, check.Commentf("Test %d: %v transpose = %v", i, test.a, test.t))
 
-        rr := T(r, nil)
+		rr := T(r, nil)
 		c.Check(rr.Equals(a), check.Equals, true, check.Commentf("Test %d: %v transpose = I", i, test.a, test.t))
 
 		r = T(a, nil)
@@ -632,7 +632,7 @@ func (s *S) TestApply(c *check.C) {
 		a := flatten2dense(test.a)
 		t := flatten2dense(test.t)
 
-        r := Apply(a, test.fn, nil)
+		r := Apply(a, test.fn, nil)
 		c.Check(r.Equals(t), check.Equals, true, check.Commentf("Test %d: obtained %v expect: %v", i, r.mat.Data, t.mat.Data))
 
 		a.Apply(test.fn)
@@ -812,7 +812,7 @@ func denseMulBench(b *testing.B, size int, rho float64) {
 	d, _ := randDense(size, rho, rand.NormFloat64)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-        wd = Mult(a, d, nil)
+		wd = Mult(a, d, nil)
 	}
 }
 
