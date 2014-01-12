@@ -331,6 +331,153 @@ func Clone(src *Dense) *Dense {
 
 
 
+func Shift(m *Dense, v float64, out *Dense) *Dense {
+    r, c := m.mat.Rows, m.mat.Cols
+    out = use_dense(out, r, c, ErrOutShape)
+    if m.Contiguous() && out.Contiguous() {
+        shift(m.DataView(), v, out.DataView())
+        return out
+    }
+    for row := 0; row < m.mat.Rows; row++ {
+        shift(m.RowView(row), v, out.RowView(row))
+    }
+    return out
+}
+
+
+
+
+func (m *Dense) Shift(v float64) {
+    Shift(m, v, m)
+}
+
+
+
+
+func Scale(m *Dense, v float64, out *Dense) *Dense {
+    r, c := m.mat.Rows, m.mat.Cols
+    out = use_dense(out, r, c, ErrOutShape)
+    if m.Contiguous() && out.Contiguous() {
+        scale(m.DataView(), v, out.DataView())
+        return out
+    }
+    for row := 0; row < m.mat.Rows; row++ {
+        scale(m.RowView(row), v, out.RowView(row))
+    }
+    return out
+}
+
+
+
+
+func (m *Dense) Scale(v float64) {
+    Scale(m, v, m)
+}
+
+
+
+
+func Add(a, b, out *Dense) *Dense {
+    if a.mat.Rows != b.mat.Rows || a.mat.Cols != b.mat.Cols {
+        panic(ErrShape)
+    }
+    out = use_dense(out, a.mat.Rows, a.mat.Cols, ErrOutShape)
+    if a.Contiguous() && b.Contiguous() && out.Contiguous() {
+        add(a.DataView(), b.DataView(), out.DataView())
+        return out
+    }
+    for row := 0; row < a.mat.Rows; row++ {
+        add(a.RowView(row), b.RowView(row), out.RowView(row))
+    }
+    return out
+}
+
+
+
+func (m *Dense) Add(X *Dense) {
+    Add(m, X, m)
+}
+
+
+
+
+func AddScaled(a, b *Dense, s float64, out *Dense) *Dense {
+    if a.mat.Rows != b.mat.Rows || a.mat.Cols != b.mat.Cols {
+        panic(ErrShape)
+    }
+    out = use_dense(out, a.mat.Rows, a.mat.Cols, ErrOutShape)
+    if a.Contiguous() && b.Contiguous() && out.Contiguous() {
+        add_scaled(a.DataView(), b.DataView(), s, out.DataView())
+        return out
+    }
+    for row := 0; row < a.mat.Rows; row++ {
+        add_scaled(a.RowView(row), b.RowView(row), s, out.RowView(row))
+    }
+    return out
+}
+
+
+
+func (m *Dense) AddScaled(X *Dense, s float64) {
+    AddScaled(m, X, s, m)
+}
+
+
+
+
+func Subtract(a, b, out *Dense) *Dense {
+    if a.mat.Rows != b.mat.Rows || a.mat.Cols != b.mat.Cols {
+        panic(ErrShape)
+    }
+    out = use_dense(out, a.mat.Rows, a.mat.Cols, ErrOutShape)
+    if a.Contiguous() && b.Contiguous() && out.Contiguous() {
+        subtract(a.DataView(), b.DataView(), out.DataView())
+        return out
+    }
+    for row := 0; row < a.mat.Rows; row++ {
+        subtract(a.RowView(row), b.RowView(row), out.RowView(row))
+    }
+    return out
+}
+
+
+
+func (m *Dense) Subtract(X *Dense) {
+    Subtract(m, X, m)
+}
+
+
+
+
+func (m *Dense) MulElem(a, b *Dense) {
+	ar, ac := a.Dims()
+	br, bc := b.Dims()
+
+	if ar != br || ac != bc {
+		panic(ErrShape)
+	}
+
+	if m.isZero() {
+		m.mat = BlasMatrix{
+			Order:  BlasOrder,
+			Rows:   ar,
+			Cols:   ac,
+			Stride: ac,
+			Data:   use(m.mat.Data, ar*ac),
+		}
+	} else if ar != m.mat.Rows || ac != m.mat.Cols {
+		panic(ErrShape)
+	}
+
+    for ja, jb, jm := 0, 0, 0; ja < ar*a.mat.Stride; ja, jb, jm = ja+a.mat.Stride, jb+b.mat.Stride, jm+m.mat.Stride {
+        for i, v := range a.mat.Data[ja : ja+ac] {
+            m.mat.Data[i+jm] = v * b.mat.Data[i+jb]
+        }
+    }
+    return
+}
+
+
 func (m *Dense) Min() float64 {
 	min := m.mat.Data[0]
 	for k := 0; k < m.mat.Rows; k++ {
@@ -429,91 +576,6 @@ func (m *Dense) Norm(ord float64) float64 {
 	return n
 }
 
-func (m *Dense) Add(a, b *Dense) {
-	ar, ac := a.Dims()
-	br, bc := b.Dims()
-
-	if ar != br || ac != bc {
-		panic(ErrShape)
-	}
-
-	if m.isZero() {
-		m.mat = BlasMatrix{
-			Order:  BlasOrder,
-			Rows:   ar,
-			Cols:   ac,
-			Stride: ac,
-			Data:   use(m.mat.Data, ar*ac),
-		}
-	} else if ar != m.mat.Rows || ac != m.mat.Cols {
-		panic(ErrShape)
-	}
-
-    for ja, jb, jm := 0, 0, 0; ja < ar*a.mat.Stride; ja, jb, jm = ja+a.mat.Stride, jb+b.mat.Stride, jm+m.mat.Stride {
-        for i, v := range a.mat.Data[ja : ja+ac] {
-            m.mat.Data[i+jm] = v + b.mat.Data[i+jb]
-        }
-    }
-    return
-}
-
-
-func (m *Dense) Sub(a, b *Dense) {
-	ar, ac := a.Dims()
-	br, bc := b.Dims()
-
-	if ar != br || ac != bc {
-		panic(ErrShape)
-	}
-
-	if m.isZero() {
-		m.mat = BlasMatrix{
-			Order:  BlasOrder,
-			Rows:   ar,
-			Cols:   ac,
-			Stride: ac,
-			Data:   use(m.mat.Data, ar*ac),
-		}
-	} else if ar != m.mat.Rows || ac != m.mat.Cols {
-		panic(ErrShape)
-	}
-
-    for ja, jb, jm := 0, 0, 0; ja < ar*a.mat.Stride; ja, jb, jm = ja+a.mat.Stride, jb+b.mat.Stride, jm+m.mat.Stride {
-        for i, v := range a.mat.Data[ja : ja+ac] {
-            m.mat.Data[i+jm] = v - b.mat.Data[i+jb]
-        }
-    }
-    return
-}
-
-func (m *Dense) MulElem(a, b *Dense) {
-	ar, ac := a.Dims()
-	br, bc := b.Dims()
-
-	if ar != br || ac != bc {
-		panic(ErrShape)
-	}
-
-	if m.isZero() {
-		m.mat = BlasMatrix{
-			Order:  BlasOrder,
-			Rows:   ar,
-			Cols:   ac,
-			Stride: ac,
-			Data:   use(m.mat.Data, ar*ac),
-		}
-	} else if ar != m.mat.Rows || ac != m.mat.Cols {
-		panic(ErrShape)
-	}
-
-    for ja, jb, jm := 0, 0, 0; ja < ar*a.mat.Stride; ja, jb, jm = ja+a.mat.Stride, jb+b.mat.Stride, jm+m.mat.Stride {
-        for i, v := range a.mat.Data[ja : ja+ac] {
-            m.mat.Data[i+jm] = v * b.mat.Data[i+jb]
-        }
-    }
-    return
-}
-
 func (m *Dense) Dot(b *Dense) float64 {
 	mr, mc := m.Dims()
 	br, bc := b.Dims()
@@ -572,30 +634,6 @@ func (m *Dense) Mul(a, b *Dense) {
         0.,
         w.mat.Data, w.mat.Stride)
     *m = w
-    return
-}
-
-
-func (m *Dense) Scale(f float64, a *Dense) {
-	ar, ac := a.Dims()
-
-	if m.isZero() {
-		m.mat = BlasMatrix{
-			Order:  BlasOrder,
-			Rows:   ar,
-			Cols:   ac,
-			Stride: ac,
-			Data:   use(m.mat.Data, ar*ac),
-		}
-	} else if ar != m.mat.Rows || ac != m.mat.Cols {
-		panic(ErrShape)
-	}
-
-    for ja, jm := 0, 0; ja < ar*a.mat.Stride; ja, jm = ja+a.mat.Stride, jm+m.mat.Stride {
-        for i, v := range a.mat.Data[ja : ja+ac] {
-            m.mat.Data[i+jm] = v * f
-        }
-    }
     return
 }
 

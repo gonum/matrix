@@ -208,7 +208,7 @@ func (s *S) TestSetRowColumn(c *check.C) {
 			a := flatten2dense(as)
 			t := Clone(a)
 			a.SetRow(ri, make([]float64, a.mat.Cols))
-			t.Sub(t, a)
+			t.Subtract(a)
 			c.Check(t.Norm(0), check.Equals, floats.Norm(row, 2))
 		}
 
@@ -220,7 +220,7 @@ func (s *S) TestSetRowColumn(c *check.C) {
 			for j := range col {
 				col[j] = float64(ci + 1 + j*a.mat.Cols)
 			}
-			t.Sub(t, a)
+			t.Subtract(a)
 			c.Check(t.Norm(0), check.Equals, floats.Norm(col, 2))
 		}
 	}
@@ -260,21 +260,15 @@ func (s *S) TestAdd(c *check.C) {
 		b := flatten2dense(test.b)
 		r := flatten2dense(test.r)
 
-		temp := &Dense{}
-		temp.Add(a, b)
+		temp := Add(a, b, nil)
 		c.Check(temp.Equals(r), check.Equals, true, check.Commentf("Test %d: %v add %v expect %v got %v",
 			i, test.a, test.b, test.r, unflatten(temp.mat.Rows, temp.mat.Cols, temp.mat.Data)))
 
-		zero(temp.mat.Data)
-		temp.Add(a, b)
+		Add(a, b, temp)
 		c.Check(temp.Equals(r), check.Equals, true, check.Commentf("Test %d: %v add %v expect %v got %v",
 			i, test.a, test.b, test.r, unflatten(temp.mat.Rows, temp.mat.Cols, temp.mat.Data)))
 
-		// These probably warrant a better check and failure. They should never happen in the wild though.
-		temp.mat.Data = nil
-		c.Check(func() { temp.Add(a, b) }, check.PanicMatches, "runtime error: index out of range", check.Commentf("Test %d"))
-
-		a.Add(a, b)
+		a.Add(b)
 		c.Check(a.Equals(r), check.Equals, true, check.Commentf("Test %d: %v sub %v expect %v got %v",
 			i, test.a, test.b, test.r, unflatten(a.mat.Rows, a.mat.Cols, a.mat.Data)))
 	}
@@ -314,21 +308,15 @@ func (s *S) TestSub(c *check.C) {
 		b := flatten2dense(test.b)
 		r := flatten2dense(test.r)
 
-		temp := &Dense{}
-		temp.Sub(a, b)
+        temp := Subtract(a, b, nil)
 		c.Check(temp.Equals(r), check.Equals, true, check.Commentf("Test %d: %v add %v expect %v got %v",
 			i, test.a, test.b, test.r, unflatten(temp.mat.Rows, temp.mat.Cols, temp.mat.Data)))
 
-		zero(temp.mat.Data)
-		temp.Sub(a, b)
+		Subtract(a, b, temp)
 		c.Check(temp.Equals(r), check.Equals, true, check.Commentf("Test %d: %v add %v expect %v got %v",
 			i, test.a, test.b, test.r, unflatten(temp.mat.Rows, temp.mat.Cols, temp.mat.Data)))
 
-		// These probably warrant a better check and failure. They should never happen in the wild though.
-		temp.mat.Data = nil
-		c.Check(func() { temp.Sub(a, b) }, check.PanicMatches, "runtime error: index out of range", check.Commentf("Test %d"))
-
-		a.Sub(a, b)
+		a.Subtract(b)
 		c.Check(a.Equals(r), check.Equals, true, check.Commentf("Test %d: %v sub %v expect %v got %v",
 			i, test.a, test.b, test.r, unflatten(a.mat.Rows, a.mat.Cols, a.mat.Data)))
 	}

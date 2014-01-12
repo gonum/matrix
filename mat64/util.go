@@ -1,18 +1,6 @@
 package mat64
 
 
-func add(x, y, out []float64) []float64 {
-    if len(x) != len(y) {
-        panic("input length mismatch")
-    }
-    out = use_slice(out, len(x), ErrOutLength)
-    for i, v := range x {
-        out[i] = v + y[i]
-    }
-    return out
-}
-
-
 
 func fill(x []float64, v float64) {
     for i := range x {
@@ -35,6 +23,100 @@ func zero(f []float64) {
 	}
 }
 */
+
+
+
+
+// add returns slice out whose elements are
+// element-wise sums of x and y.
+// If out is nil, a new slice will be created;
+// otherwise, len(out) must equal len(x), as well as len(y).
+// out can be x or y, that is, the result is written to one of the input
+// slices.
+func add(x, y, out []float64) []float64 {
+    if len(x) != len(y) {
+        panic("input length mismatch")
+    }
+    out = use_slice(out, len(x), ErrOutLength)
+    for i, v := range x {
+        out[i] = v + y[i]
+    }
+    return out
+}
+
+
+
+
+// add_scaled returns slice out whose elements are
+// element-wise sums of x and scaled y.
+// If out is nil, a new slice will be created;
+// otherwise, len(out) must equal len(x), as well as len(y).
+// out can be x or y, that is, the result is written to one of the input
+// slices.
+func add_scaled(x, y []float64, s float64, out []float64) []float64 {
+    if len(x) != len(y) {
+        panic("input length mismatch")
+    }
+    out = use_slice(out, len(x), ErrOutLength)
+    for i, v := range x {
+        out[i] = v + y[i] * s
+    }
+    return out
+}
+
+
+
+
+// subtract returns slice out whose elements are
+// element-wise differences of x and y.
+// If out is nil, a new slice will be created;
+// otherwise, len(out) must equal len(x), as well as len(y).
+// out can be x or y, that is, the result is written to one of the input
+// slices.
+func subtract(x, y, out []float64) []float64 {
+    if len(x) != len(y) {
+        panic("input length mismatch")
+    }
+    out = use_slice(out, len(x), ErrOutLength)
+    for i, v := range x {
+        out[i] = v - y[i]
+    }
+    return out
+}
+
+
+
+
+// shift adds constant v to every element of x,
+// store the result in out and returns out.
+// If out is nil, a new slice will be allocated;
+// otherwise, out must have the same length as x.
+// out can be x itself, in which case elements
+// of x are incremented by the amount v.
+func shift(x []float64, v float64, out []float64) []float64 {
+    out = use_slice(out, len(x), ErrOutLength)
+    for i, val := range x {
+        out[i] = val + v
+    }
+    return out
+}
+
+
+
+// scale multiplies constant v to every element of x,
+// store the result in out and returns out.
+// If out is nil, a new slice will be allocated;
+// otherwise, out must have the same length as x.
+// out can be x itself, in which case elements
+// of x are scaled by the amount v.
+func scale(x []float64, v float64, out []float64) []float64 {
+    out = use_slice(out, len(x), ErrOutLength)
+    for i, val := range x {
+        out[i] = val * v
+    }
+    return out
+}
+
 
 
 
