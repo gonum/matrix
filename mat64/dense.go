@@ -255,17 +255,22 @@ func Clone(src *Dense) *Dense {
 	return out
 }
 
-func Shift(m *Dense, v float64, out *Dense) *Dense {
-	r, c := m.mat.Rows, m.mat.Cols
-	out = use_dense(out, r, c, ErrOutShape)
-	if m.Contiguous() && out.Contiguous() {
-		shift(m.DataView(), v, out.DataView())
+func element_wise_unary(a *Dense, val float64, out *Dense,
+	f func(a []float64, val float64, out []float64) []float64) *Dense {
+
+	out = use_dense(out, a.mat.Rows, a.mat.Cols, ErrOutShape)
+	if a.Contiguous() && out.Contiguous() {
+		f(a.DataView(), val, out.DataView())
 		return out
 	}
-	for row := 0; row < m.mat.Rows; row++ {
-		shift(m.RowView(row), v, out.RowView(row))
+	for row := 0; row < a.mat.Rows; row++ {
+		f(a.RowView(row), val, out.RowView(row))
 	}
 	return out
+}
+
+func Shift(m *Dense, v float64, out *Dense) *Dense {
+	return element_wise_unary(m, v, out, shift)
 }
 
 func (m *Dense) Shift(v float64) {
@@ -273,16 +278,7 @@ func (m *Dense) Shift(v float64) {
 }
 
 func Scale(m *Dense, v float64, out *Dense) *Dense {
-	r, c := m.mat.Rows, m.mat.Cols
-	out = use_dense(out, r, c, ErrOutShape)
-	if m.Contiguous() && out.Contiguous() {
-		scale(m.DataView(), v, out.DataView())
-		return out
-	}
-	for row := 0; row < m.mat.Rows; row++ {
-		scale(m.RowView(row), v, out.RowView(row))
-	}
-	return out
+	return element_wise_unary(m, v, out, scale)
 }
 
 func (m *Dense) Scale(v float64) {
@@ -653,24 +649,6 @@ type BlasMatrix struct {
 	Rows, Cols int
 	Stride     int
 	Data       []float64
-}
-
-// Matrix converts a BlasMatrix to a Matrix, writing the data to the matrix represented by c. If c is a
-// BlasLoader, that method will be called, otherwise the matrix must be the correct shape.
-func (b BlasMatrix) Matrix(c *Dense) {
-	c.LoadBlas(b)
-}
-
-// A BlasLoader can directly load a BlasMatrix representation. There is no restriction on the shape of the
-// receiver.
-type BlasLoader interface {
-	LoadBlas(a BlasMatrix)
-}
-
-// A Blasser can return a BlasMatrix representation of the receiver. Changes to the BlasMatrix.Data
-// slice will be reflected in the original matrix, changes to the Rows, Cols and Stride fields will not.
-type Blasser interface {
-	BlasMatrix() BlasMatrix
 }
 
 // Det returns the determinant of the matrix a.
