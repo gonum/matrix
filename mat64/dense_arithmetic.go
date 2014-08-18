@@ -557,3 +557,20 @@ func (m *Dense) EqualsApprox(b Matrix, epsilon float64) bool {
 	}
 	return true
 }
+
+// Return the indices of the elements that are non-zero in two integer slices representing the row and column indices respectively.
+func (m *Dense) Nonzero() ([]int, []int) {
+	rows, cols := m.Dims()
+	nz_rows := make([]int, 0)
+	nz_cols := make([]int, 0)
+
+	for r := 0; r < rows; r++ {
+		for c := 0; c < cols; c++ {
+			if m.At(r, c) != 0 {
+				nz_rows = append(nz_rows, r)
+				nz_cols = append(nz_cols, c)
+			}
+		}
+	}
+	return nz_rows, nz_cols
+}
