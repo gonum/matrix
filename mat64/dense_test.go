@@ -10,7 +10,7 @@ import (
 	"math/rand"
 	"testing"
 
-	check "launchpad.net/gocheck"
+	check "gopkg.in/check.v1"
 )
 
 func (s *S) TestNewDense(c *check.C) {
@@ -847,6 +847,80 @@ func (s *S) TestRankOne(c *check.C) {
 		// Check with the same matrix
 		a.RankOne(a, test.alpha, test.x, test.y)
 		c.Check(a.Equals(want), check.Equals, true, check.Commentf("Test %v. Want %v, Got %v", i, want, m))
+	}
+}
+
+func (s *S) TestConvenience(c *check.C) {
+	for i, test := range []struct {
+		mf      [][]float64
+		diag    []float64
+		mdf     [][]float64
+		sym, sq bool
+	}{
+		{
+			[][]float64{{0, 0, 0}, {1, 1, 1}, {2, 2, 2}},
+			[]float64{0, 1, 2},
+			[][]float64{{0, 0, 0}, {0, 1, 0}, {0, 0, 2}},
+			false,
+			true,
+		},
+		{
+			[][]float64{{0, 1, 2, 3}, {0, 1, 2, 3}, {0, 1, 2, 3}, {0, 1, 2, 3}},
+			[]float64{0, 1, 2, 3},
+			[][]float64{{0, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 2, 0}, {0, 0, 0, 3}},
+			false,
+			true,
+		},
+		{
+			[][]float64{{2, 1, 0}, {1, 1, 1}, {0, 1, 0}},
+			[]float64{2, 1, 0},
+			[][]float64{{2, 0, 0}, {0, 1, 0}, {0, 0, 0}},
+			true,
+			true,
+		},
+
+		{
+			[][]float64{{0, 0, 0}, {1, 1, 1}, {2, 2, 2}, {3, 3, 3}},
+			[]float64{0, 1, 2},
+			[][]float64{{0, 0, 0}, {0, 1, 0}, {0, 0, 2}},
+			false,
+			false, //useless, using diag as a proxy (should panic together)
+		},
+	} {
+		m := NewDense(flatten(test.mf))
+
+		var diag []float64
+		fnDiag := func() {
+			diag = Diag(m)
+		}
+
+		panicked, message := panics(fnDiag)
+		if panicked {
+			c.Check(test.diag, check.IsNil, check.Commentf("Test %d panicked with message: %s", i, message))
+		} else {
+			c.Check(diag, check.DeepEquals, test.diag, check.Commentf("Test %d: obtained %v expect: %v", i, diag, test.diag))
+		}
+
+		var sym bool
+		fnSym := func() {
+			sym = IsSymmetric(m)
+		}
+
+		panicked, message = panics(fnSym)
+		if panicked {
+			c.Check(test.diag, check.IsNil, check.Commentf("Test %d panicked with message: %s", i, message))
+		} else {
+			c.Check(sym, check.Equals, test.sym, check.Commentf("Test %d: obtained %v expect: %v", i, sym, test.sym))
+		}
+
+		sq := IsSquare(m)
+		c.Check(sq, check.Equals, test.sq, check.Commentf("Test %d: obtained %v expect: %v", i, sq, test.sq))
+
+		if test.diag != nil {
+			md := NewDiag(test.diag)
+			tmd := NewDense(flatten(test.mdf))
+			c.Check(md, check.DeepEquals, tmd, check.Commentf("Test %d: obtained %v expect: %v", i, md, tmd))
+		}
 	}
 }
 

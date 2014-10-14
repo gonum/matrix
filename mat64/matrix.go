@@ -406,3 +406,60 @@ func use(f []float64, l int) []float64 {
 	}
 	return make([]float64, l)
 }
+
+//IsSymmetric is a function that checks if the Matrix is symmetric
+//Returns a boolean, esp. `false` if matrix is not square.
+func IsSymmetric(m Matrix) bool {
+	r, c := m.Dims()
+	if r != c {
+		return false
+	}
+	switch m := m.(type) {
+	case RawMatrixer:
+		mat := m.RawMatrix()
+		for i := 0; i < r; i++ {
+			for j := 0; j < r; j++ {
+				if mat.Data[i*mat.Stride+j] != mat.Data[j*mat.Stride+i] {
+					return false
+				}
+			}
+		}
+	default:
+		for i := 0; i < r; i++ {
+			for j := 0; j < i; j++ {
+				if m.At(i, j) != m.At(j, i) {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
+//IsSquare() checks for equal dimensions of the matrix and returns a boolean
+func IsSquare(m Matrix) bool {
+	r, c := m.Dims()
+	if r != c {
+		return false
+	}
+	return true
+}
+
+//Diag() returns the diagonal elements of the Matrix as a float64 slice.
+func Diag(m Matrix) []float64 {
+	r, c := m.Dims()
+	dl := min(r, c) //for non symmetric matrices
+	d := make([]float64, dl)
+	switch m := m.(type) {
+	case RawMatrixer:
+		mat := m.RawMatrix()
+		for i := 0; i < dl; i++ {
+			d[i] = mat.Data[i*(mat.Stride+1)]
+		}
+	default:
+		for i := 0; i < dl; i++ {
+			d[i] = m.At(i, i)
+		}
+	}
+	return d
+}

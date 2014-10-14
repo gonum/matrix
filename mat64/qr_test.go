@@ -5,7 +5,7 @@
 package mat64
 
 import (
-	check "launchpad.net/gocheck"
+	check "gopkg.in/check.v1"
 	"math"
 
 	"github.com/gonum/floats"

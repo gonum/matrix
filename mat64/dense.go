@@ -58,6 +58,8 @@ type Dense struct {
 	mat RawMatrix
 }
 
+// NewDense creates a new matrix of type *Dense with dimensions r and c. If the mat argument is nil,
+// the matrix is initialized with zeros.
 func NewDense(r, c int, mat []float64) *Dense {
 	if mat != nil && r*c != len(mat) {
 		panic(ErrShape)
@@ -102,6 +104,8 @@ func (m *Dense) at(r, c int) float64 {
 	return m.mat.Data[r*m.mat.Stride+c]
 }
 
+// Set alters the matrix element at (r, c) to v.
+// See the Mutable interface for the full doc.
 func (m *Dense) Set(r, c int, v float64) {
 	if r >= m.mat.Rows || r < 0 {
 		panic("index error: row access out of bounds")
@@ -114,6 +118,8 @@ func (m *Dense) Set(r, c int, v float64) {
 
 func (m *Dense) Dims() (r, c int) { return m.mat.Rows, m.mat.Cols }
 
+// Col returns a slice of float64 for the column specified.
+// See the Vectorer interface for full doc.
 func (m *Dense) Col(col []float64, c int) []float64 {
 	if c >= m.mat.Cols || c < 0 {
 		panic(ErrIndexOutOfRange)
@@ -131,6 +137,8 @@ func (m *Dense) Col(col []float64, c int) []float64 {
 	return col
 }
 
+// SetCol sets the values of the specified column to the values held in a slice of float64.
+// See the VectorSetter interface for full doc
 func (m *Dense) SetCol(c int, v []float64) int {
 	if c >= m.mat.Cols || c < 0 {
 		panic(ErrIndexOutOfRange)
@@ -144,6 +152,8 @@ func (m *Dense) SetCol(c int, v []float64) int {
 	return min(len(v), m.mat.Rows)
 }
 
+// Row returns a slice of float64 for the row specified.
+// See the Vectorer interface for full doc.
 func (m *Dense) Row(row []float64, r int) []float64 {
 	if r >= m.mat.Rows || r < 0 {
 		panic(ErrIndexOutOfRange)
@@ -157,6 +167,8 @@ func (m *Dense) Row(row []float64, r int) []float64 {
 	return row
 }
 
+// SetRow sets the values of the specified row to the values held in a slice of float64.
+// See the VectorSetter interface for full doc
 func (m *Dense) SetRow(r int, v []float64) int {
 	if r >= m.mat.Rows || r < 0 {
 		panic(ErrIndexOutOfRange)
@@ -167,6 +179,8 @@ func (m *Dense) SetRow(r int, v []float64) int {
 	return min(len(v), m.mat.Cols)
 }
 
+// RowView returns a slice of float64 reflecting a row that is backed by the matrix data.
+// See RowViewer for full doc.
 func (m *Dense) RowView(r int) []float64 {
 	if r >= m.mat.Rows || r < 0 {
 		panic(ErrIndexOutOfRange)
@@ -185,17 +199,23 @@ func (m *Dense) View(a Matrix, i, j, r, c int) {
 	m.mat.Cols = c
 }
 
+// Submatrix extracts a copy of submatrix from a into the receiver, starting at row i, column j and extending r rows and c columns.
+// See the Submatrixer interface for full doc.
 func (m *Dense) Submatrix(a Matrix, i, j, r, c int) {
 	// This is probably a bad idea, but for the moment, we do it.
 	m.View(a, i, j, r, c)
 	m.Clone(m)
 }
 
+// Reset Zeros the dimensions of the matrix so that it can be reused as the receiver of a dimensionally restricted operation
+// See the Reseter interface for full doc.
 func (m *Dense) Reset() {
 	m.mat.Rows, m.mat.Cols = 0, 0
 	m.mat.Data = m.mat.Data[:0]
 }
 
+// Clone makes a copy of a into the receiver, overwriting the previous value of the eceiver.
+// See the Cloner interface for full doc.
 func (m *Dense) Clone(a Matrix) {
 	r, c := a.Dims()
 	mat := RawMatrix{
@@ -228,6 +248,8 @@ func (m *Dense) Clone(a Matrix) {
 	m.mat = mat
 }
 
+// Copier can make a copy of elements of a into the receiver.
+// See the Copier interface for full doc.
 func (m *Dense) Copy(a Matrix) (r, c int) {
 	r, c = a.Dims()
 	r = min(r, m.mat.Rows)
@@ -261,6 +283,8 @@ func zero(f []float64) {
 	}
 }
 
+// U returns the upper triangular matrix of the matrix represented by a, placing the result in the receiver.
+// See the Uer interface for full doc.
 func (m *Dense) U(a Matrix) {
 	ar, ac := a.Dims()
 	if ar != ac {
@@ -316,6 +340,8 @@ func (m *Dense) zeroLower() {
 	}
 }
 
+// L returns the lower triangular matrix of the matrix represented by a, placing the result in the receiver.
+// See the Ler interface for full doc.
 func (m *Dense) L(a Matrix) {
 	ar, ac := a.Dims()
 	if ar != ac {
@@ -370,6 +396,8 @@ func (m *Dense) zeroUpper() {
 	}
 }
 
+// A TransposeCopier can make a copy of the transpose the matrix represented by a, placing the elements into the receiver.
+// See the TransposeCopier interface for full doc.
 func (m *Dense) TCopy(a Matrix) {
 	ar, ac := a.Dims()
 
@@ -404,6 +432,8 @@ func (m *Dense) TCopy(a Matrix) {
 	*m = w
 }
 
+// Stack the stacked matrix of a with b, where b is placed in the greater indexed rows.
+// See the Stacker interface for full doc.
 func (m *Dense) Stack(a, b Matrix) {
 	ar, ac := a.Dims()
 	br, bc := b.Dims()
@@ -428,6 +458,8 @@ func (m *Dense) Stack(a, b Matrix) {
 	w.Copy(b)
 }
 
+// Augment creates the augmented matrix of a with b, where b is placed in the greater indexed columns
+// See the Augmenter interface for full doc.
 func (m *Dense) Augment(a, b Matrix) {
 	ar, ac := a.Dims()
 	br, bc := b.Dims()
@@ -450,4 +482,13 @@ func (m *Dense) Augment(a, b Matrix) {
 	var w Dense
 	w.View(m, 0, ac, br, bc)
 	w.Copy(b)
+}
+
+//NewDiag returns a new diagonal matrix with the input slice as the diagonal elements.
+func NewDiag(d []float64) *Dense {
+	m := NewDense(len(d), len(d), nil)
+	for i := 0; i < m.mat.Rows; i++ {
+		m.mat.Data[i*(m.mat.Stride+1)] = d[i]
+	}
+	return m
 }
