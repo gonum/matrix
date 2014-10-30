@@ -6,6 +6,7 @@ package mat64
 
 import (
 	"math"
+	"runtime"
 
 	"github.com/gonum/blas"
 )
@@ -276,33 +277,90 @@ func (m *Dense) Dot(b Matrix) float64 {
 		panic(ErrShape)
 	}
 
-	var d float64
+	nCPU := runtime.NumCPU()
+	runtime.GOMAXPROCS(nCPU)
 
+	var d float64
 	if b, ok := b.(RawMatrixer); ok {
+
 		bmat := b.RawMatrix()
-		for jm, jb := 0, 0; jm < mr*m.mat.Stride; jm, jb = jm+m.mat.Stride, jb+bmat.Stride {
-			for i, v := range m.mat.Data[jm : jm+mc] {
-				d += v * bmat.Data[i+jb]
-			}
+
+		part := int(math.Ceil(float64(mr*mc) / float64(nCPU)))
+
+		ch := make(chan float64, nCPU)
+		for i := 0; i < nCPU; i++ {
+			go func(i int) {
+				lb := part * i
+				ub := int(math.Min(float64(part*(i+1)),
+					float64(mr*mc)))
+
+				var res float64
+				for k := lb; k < ub; k++ {
+					res += m.mat.Data[k] * bmat.Data[k]
+				}
+
+				ch <- res
+			}(i)
 		}
+		for i := 0; i < nCPU; i++ {
+			d += <-ch
+		}
+
 		return d
 	}
 
 	if b, ok := b.(Vectorer); ok {
 		row := make([]float64, bc)
-		for r := 0; r < br; r++ {
-			for i, v := range b.Row(row, r) {
-				d += m.mat.Data[r*m.mat.Stride+i] * v
-			}
+
+		part := int(math.Ceil(float64(br) / float64(nCPU)))
+
+		ch := make(chan float64, nCPU)
+		for i := 0; i < nCPU; i++ {
+			go func(i int) {
+				lb := part * i
+				ub := int(math.Min(float64(part*(i+1)),
+					float64(br)))
+
+				var res float64
+				for r := lb; r < ub; r++ {
+					for c, v := range b.Row(row, r) {
+						res += m.mat.Data[r*m.mat.Stride+c] * v
+					}
+				}
+
+				ch <- res
+			}(i)
 		}
+		for i := 0; i < nCPU; i++ {
+			d += <-ch
+		}
+
 		return d
 	}
 
-	for r := 0; r < mr; r++ {
-		for c := 0; c < mc; c++ {
-			d += m.At(r, c) * b.At(r, c)
-		}
+	part := int(math.Ceil(float64(mr) / float64(nCPU)))
+
+	ch := make(chan float64, nCPU)
+	for i := 0; i < nCPU; i++ {
+		go func(i int) {
+			lb := part * i
+			ub := int(math.Min(float64(part*(i+1)),
+				float64(mr)))
+
+			var res float64
+			for r := lb; r < ub; r++ {
+				for c := 0; c < mc; c++ {
+					res += m.At(r, c) * b.At(r, c)
+				}
+			}
+
+			ch <- res
+		}(i)
 	}
+	for i := 0; i < nCPU; i++ {
+		d += <-ch
+	}
+
 	return d
 }
 
