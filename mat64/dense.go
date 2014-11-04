@@ -20,10 +20,9 @@ var (
 	_ Vectorer     = matrix
 	_ VectorSetter = matrix
 
-	_ Cloner      = matrix
-	_ Viewer      = matrix
-	_ Submatrixer = matrix
-	_ RowViewer   = matrix
+	_ Cloner    = matrix
+	_ Viewer    = matrix
+	_ RowViewer = matrix
 
 	_ Adder     = matrix
 	_ Suber     = matrix
@@ -201,12 +200,6 @@ func (m *Dense) View(a Matrix, i, j, r, c int) {
 
 // Submatrix extracts a copy of submatrix from a into the receiver, starting at row i, column j and extending r rows and c columns.
 // See the Submatrixer interface for full doc.
-func (m *Dense) Submatrix(a Matrix, i, j, r, c int) {
-	// This is probably a bad idea, but for the moment, we do it.
-	m.View(a, i, j, r, c)
-	m.Clone(m)
-}
-
 // Reset Zeros the dimensions of the matrix so that it can be reused as the receiver of a dimensionally restricted operation
 // See the Reseter interface for full doc.
 func (m *Dense) Reset() {

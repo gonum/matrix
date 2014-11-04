@@ -100,15 +100,6 @@ type Viewer interface {
 	View(a Matrix, i, j, r, c int)
 }
 
-// A Submatrixer can extract a copy of submatrix from a into the receiver, starting at row i,
-// column j and extending r rows and c columns. If i or j are out of range, or r or c extend
-// beyond the bounds of the matrix Submatrix will panic with ErrIndexOutOfRange. There is no
-// restriction on the shape of the receiver but changes in the elements of the submatrix must
-// not be reflected in the original.
-type Submatrixer interface {
-	Submatrix(a Matrix, i, j, r, c int)
-}
-
 // A Normer can return the specified matrix norm, o of the matrix represented by the receiver.
 //
 // Valid order values are:
@@ -293,7 +284,8 @@ func Det(a Matrix) float64 {
 }
 
 // Inverse returns the inverse or pseudoinverse of the matrix a.
-func Inverse(a Matrix) *Dense {
+// It returns a nil matrix and ErrSingular if a is singular.
+func Inverse(a Matrix) (*Dense, error) {
 	m, _ := a.Dims()
 	d := make([]float64, m*m)
 	for i := 0; i < m*m; i += m + 1 {
@@ -304,18 +296,31 @@ func Inverse(a Matrix) *Dense {
 }
 
 // Solve returns a matrix x that satisfies ax = b.
-func Solve(a, b Matrix) (x *Dense) {
+// It returns a nil matrix and ErrSingular if a is singular.
+func Solve(a, b Matrix) (x *Dense, err error) {
 	switch m, n := a.Dims(); {
 	case m == n:
-		return LU(DenseCopyOf(a)).Solve(DenseCopyOf(b))
+		lu := LU(DenseCopyOf(a))
+		if lu.IsSingular() {
+			return nil, ErrSingular
+		}
+		return lu.Solve(DenseCopyOf(b)), nil
 	case m > n:
-		return QR(DenseCopyOf(a)).Solve(DenseCopyOf(b))
+		qr := QR(DenseCopyOf(a))
+		if !qr.IsFullRank() {
+			return nil, ErrSingular
+		}
+		return qr.Solve(DenseCopyOf(b)), nil
 	default:
+		lq := LQ(DenseCopyOf(a))
+		if !lq.IsFullRank() {
+			return nil, ErrSingular
+		}
 		switch b := b.(type) {
 		case *Dense:
-			return LQ(DenseCopyOf(a)).Solve(b)
+			return lq.Solve(b), nil
 		default:
-			return LQ(DenseCopyOf(a)).Solve(DenseCopyOf(b))
+			return lq.Solve(DenseCopyOf(b)), nil
 		}
 	}
 }
