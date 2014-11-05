@@ -850,41 +850,27 @@ func (s *S) TestRankOne(c *check.C) {
 	}
 }
 
-func (s *S) TestConvenience(c *check.C) {
+func (s *S) TestDiag(c *check.C) {
 	for i, test := range []struct {
-		mf      [][]float64
-		diag    []float64
-		mdf     [][]float64
-		sym, sq bool
+		mf   [][]float64
+		diag []float64
 	}{
 		{
 			[][]float64{{0, 0, 0}, {1, 1, 1}, {2, 2, 2}},
 			[]float64{0, 1, 2},
-			[][]float64{{0, 0, 0}, {0, 1, 0}, {0, 0, 2}},
-			false,
-			true,
 		},
 		{
 			[][]float64{{0, 1, 2, 3}, {0, 1, 2, 3}, {0, 1, 2, 3}, {0, 1, 2, 3}},
 			[]float64{0, 1, 2, 3},
-			[][]float64{{0, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 2, 0}, {0, 0, 0, 3}},
-			false,
-			true,
 		},
 		{
 			[][]float64{{2, 1, 0}, {1, 1, 1}, {0, 1, 0}},
 			[]float64{2, 1, 0},
-			[][]float64{{2, 0, 0}, {0, 1, 0}, {0, 0, 0}},
-			true,
-			true,
 		},
 
 		{
 			[][]float64{{0, 0, 0}, {1, 1, 1}, {2, 2, 2}, {3, 3, 3}},
 			[]float64{0, 1, 2},
-			[][]float64{{0, 0, 0}, {0, 1, 0}, {0, 0, 2}},
-			false,
-			false, //useless, using diag as a proxy (should panic together)
 		},
 	} {
 		m := NewDense(flatten(test.mf))
@@ -900,27 +886,67 @@ func (s *S) TestConvenience(c *check.C) {
 		} else {
 			c.Check(diag, check.DeepEquals, test.diag, check.Commentf("Test %d: obtained %v expect: %v", i, diag, test.diag))
 		}
+	}
+}
 
-		var sym bool
-		fnSym := func() {
-			sym = IsSymmetric(m)
-		}
+func (s *S) TestIsSymmetric(c *check.C) {
+	for i, test := range []struct {
+		mf  [][]float64
+		sym bool
+	}{
+		{
+			[][]float64{{0, 0, 0}, {1, 1, 1}, {2, 2, 2}},
+			false,
+		},
+		{
+			[][]float64{{0, 1, 2, 3}, {0, 1, 2, 3}, {0, 1, 2, 3}, {0, 1, 2, 3}},
+			false,
+		},
+		{
+			[][]float64{{2, 1, 0}, {1, 1, 1}, {0, 1, 0}},
+			true,
+		},
 
-		panicked, message = panics(fnSym)
-		if panicked {
-			c.Check(test.diag, check.IsNil, check.Commentf("Test %d panicked with message: %s", i, message))
-		} else {
-			c.Check(sym, check.Equals, test.sym, check.Commentf("Test %d: obtained %v expect: %v", i, sym, test.sym))
-		}
+		{
+			[][]float64{{0, 0, 0}, {1, 1, 1}, {2, 2, 2}, {3, 3, 3}},
+			false,
+		},
+	} {
+		m := NewDense(flatten(test.mf))
 
-		sq := IsSquare(m)
-		c.Check(sq, check.Equals, test.sq, check.Commentf("Test %d: obtained %v expect: %v", i, sq, test.sq))
+		sym := IsSymmetric(m)
+		c.Check(sym, check.Equals, test.sym, check.Commentf("Test %d: obtained %v expect: %v", i, sym, test.sym))
 
-		if test.diag != nil {
-			md := NewDiag(test.diag)
-			tmd := NewDense(flatten(test.mdf))
-			c.Check(md, check.DeepEquals, tmd, check.Commentf("Test %d: obtained %v expect: %v", i, md, tmd))
-		}
+	}
+}
+
+func (s *S) TestNewDiag(c *check.C) {
+	for i, test := range []struct {
+		diag []float64
+		mdf  [][]float64
+	}{
+		{
+			[]float64{0, 1, 2},
+			[][]float64{{0, 0, 0}, {0, 1, 0}, {0, 0, 2}},
+		},
+		{
+			[]float64{0, 1, 2, 3},
+			[][]float64{{0, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 2, 0}, {0, 0, 0, 3}},
+		},
+		{
+			[]float64{2, 1, 0},
+			[][]float64{{2, 0, 0}, {0, 1, 0}, {0, 0, 0}},
+		},
+
+		{
+			[]float64{0, 1, 2},
+			[][]float64{{0, 0, 0}, {0, 1, 0}, {0, 0, 2}},
+		},
+	} {
+
+		md := NewDiag(test.diag)
+		tmd := NewDense(flatten(test.mdf))
+		c.Check(md, check.DeepEquals, tmd, check.Commentf("Test %d: obtained %v expect: %v", i, md, tmd))
 	}
 }
 
@@ -959,5 +985,49 @@ func densePreMulBench(b *testing.B, size int, rho float64) {
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		wd.Mul(a, d)
+	}
+}
+
+func BenchmarkIsSym10Sym(b *testing.B)    { denseSymBench(b, 10, 1, true) }
+func BenchmarkIsSymBis10Sym(b *testing.B) { denseSym2Bench(b, 10, 1, true) }
+
+// func BenchmarkIsSym100(b *testing.B)        { denseSymBench(b, 100, 1, false) }
+func BenchmarkIsSym100Sym(b *testing.B)    { denseSymBench(b, 100, 1, true) }
+func BenchmarkIsSymBis100Sym(b *testing.B) { denseSym2Bench(b, 100, 1, true) }
+
+// func BenchmarkIsSym1000(b *testing.B)       { denseSymBench(b, 1000, 1, false) }
+func BenchmarkIsSym1000Sym(b *testing.B)    { denseSymBench(b, 1000, 1, true) }
+func BenchmarkIsSymBis1000Sym(b *testing.B) { denseSym2Bench(b, 1000, 1, true) }
+
+func BenchmarkIsSym3000Sym(b *testing.B)    { denseSymBench(b, 3000, 1, true) }
+func BenchmarkIsSymBis3000Sym(b *testing.B) { denseSymBench(b, 3000, 1, true) }
+
+func denseSymBench(b *testing.B, size int, rho float64, sym bool) {
+	b.StopTimer()
+	a, _ := randDense(size, rho, rand.NormFloat64)
+	if sym {
+		r, c := a.Dims()
+		m := NewDense(r, c, nil)
+		m.TCopy(a)
+		a.Add(a, m)
+	}
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		IsSymmetric(a)
+	}
+}
+
+func denseSym2Bench(b *testing.B, size int, rho float64, sym bool) {
+	b.StopTimer()
+	a, _ := randDense(size, rho, rand.NormFloat64)
+	if sym {
+		r, c := a.Dims()
+		m := NewDense(r, c, nil)
+		m.TCopy(a)
+		a.Add(a, m)
+	}
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		IsSymmetric2(a)
 	}
 }

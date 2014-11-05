@@ -412,9 +412,39 @@ func use(f []float64, l int) []float64 {
 	return make([]float64, l)
 }
 
-// IsSymmetric is a function that checks if the Matrix is symmetric
+// IsSymmetric is a function that checks if the Matrix is symmetric.
 // Returns a boolean, esp. `false` if matrix is not square.
 func IsSymmetric(m Matrix) bool {
+	r, c := m.Dims()
+	if r != c {
+		return false
+	}
+	switch m := m.(type) {
+	case RawMatrixer:
+		mat := m.RawMatrix()
+		for i := 0; i < r; i++ {
+			subData := mat.Data[i*mat.Stride:]
+			for j := 0; j < r; j++ {
+				if subData[j] != mat.Data[j*mat.Stride+i] {
+					return false
+				}
+			}
+		}
+	default:
+		for i := 0; i < r; i++ {
+			for j := 0; j < i; j++ {
+				if m.At(i, j) != m.At(j, i) {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
+// IsSymmetric is a function that checks if the Matrix is symmetric.
+// Returns a boolean, esp. `false` if matrix is not square.
+func IsSymmetric2(m Matrix) bool {
 	r, c := m.Dims()
 	if r != c {
 		return false
