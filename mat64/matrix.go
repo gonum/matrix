@@ -442,35 +442,6 @@ func IsSymmetric(m Matrix) bool {
 	return true
 }
 
-// IsSymmetric is a function that checks if the Matrix is symmetric.
-// Returns a boolean, esp. `false` if matrix is not square.
-func IsSymmetric2(m Matrix) bool {
-	r, c := m.Dims()
-	if r != c {
-		return false
-	}
-	switch m := m.(type) {
-	case RawMatrixer:
-		mat := m.RawMatrix()
-		for i := 0; i < r; i++ {
-			for j := 0; j < r; j++ {
-				if mat.Data[i*mat.Stride+j] != mat.Data[j*mat.Stride+i] {
-					return false
-				}
-			}
-		}
-	default:
-		for i := 0; i < r; i++ {
-			for j := 0; j < i; j++ {
-				if m.At(i, j) != m.At(j, i) {
-					return false
-				}
-			}
-		}
-	}
-	return true
-}
-
 // Diag() returns the diagonal elements of the Matrix as a float64 slice.
 func Diag(m Matrix) []float64 {
 	r, c := m.Dims()
