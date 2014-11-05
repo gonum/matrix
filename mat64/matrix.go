@@ -412,8 +412,8 @@ func use(f []float64, l int) []float64 {
 	return make([]float64, l)
 }
 
-//IsSymmetric is a function that checks if the Matrix is symmetric
-//Returns a boolean, esp. `false` if matrix is not square.
+// IsSymmetric is a function that checks if the Matrix is symmetric
+// Returns a boolean, esp. `false` if matrix is not square.
 func IsSymmetric(m Matrix) bool {
 	r, c := m.Dims()
 	if r != c {
@@ -441,19 +441,10 @@ func IsSymmetric(m Matrix) bool {
 	return true
 }
 
-//IsSquare() checks for equal dimensions of the matrix and returns a boolean
-func IsSquare(m Matrix) bool {
-	r, c := m.Dims()
-	if r != c {
-		return false
-	}
-	return true
-}
-
-//Diag() returns the diagonal elements of the Matrix as a float64 slice.
+// Diag() returns the diagonal elements of the Matrix as a float64 slice.
 func Diag(m Matrix) []float64 {
 	r, c := m.Dims()
-	dl := min(r, c) //for non symmetric matrices
+	dl := min(r, c) // for non symmetric matrices
 	d := make([]float64, dl)
 	switch m := m.(type) {
 	case RawMatrixer:
