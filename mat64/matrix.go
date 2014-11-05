@@ -443,10 +443,13 @@ func IsSymmetric(m Matrix) bool {
 }
 
 // Diag() returns the diagonal elements of the Matrix as a float64 slice.
-func Diag(m Matrix) []float64 {
+// The user can provide a pre-allocated slice, or nil to let the function allocate one.
+func Diag(m Matrix, d []float64) []float64 {
 	r, c := m.Dims()
 	dl := min(r, c) // for non symmetric matrices
-	d := make([]float64, dl)
+	if d == nil {
+		d = make([]float64, dl)
+	}
 	switch m := m.(type) {
 	case RawMatrixer:
 		mat := m.RawMatrix()

@@ -875,17 +875,9 @@ func (s *S) TestDiag(c *check.C) {
 	} {
 		m := NewDense(flatten(test.mf))
 
-		var diag []float64
-		fnDiag := func() {
-			diag = Diag(m)
-		}
+		diag := Diag(m, nil)
+		c.Check(diag, check.DeepEquals, test.diag, check.Commentf("Test %d: obtained %v expect: %v", i, diag, test.diag))
 
-		panicked, message := panics(fnDiag)
-		if panicked {
-			c.Check(test.diag, check.IsNil, check.Commentf("Test %d panicked with message: %s", i, message))
-		} else {
-			c.Check(diag, check.DeepEquals, test.diag, check.Commentf("Test %d: obtained %v expect: %v", i, diag, test.diag))
-		}
 	}
 }
 
