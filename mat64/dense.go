@@ -118,7 +118,7 @@ func (m *Dense) Set(r, c int, v float64) {
 
 func (m *Dense) Dims() (r, c int) { return m.mat.Rows, m.mat.Cols }
 
-// Col returns a slice of float64 for the column specified.
+// Col returns a slice of float64 for the column c.
 // If the provided slice is nil, a new slice is allocated.
 //
 // See the Vectorer interface for more information.
@@ -155,7 +155,7 @@ func (m *Dense) SetCol(c int, v []float64) int {
 	return min(len(v), m.mat.Rows)
 }
 
-// Row returns a slice of float64 for the row specified.
+// Row returns a slice of float64 for the row r.
 //
 // See the Vectorer interface for more information.
 func (m *Dense) Row(row []float64, r int) []float64 {
