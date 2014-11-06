@@ -491,12 +491,3 @@ func (m *Dense) Augment(a, b Matrix) {
 	w.View(m, 0, ac, br, bc)
 	w.Copy(b)
 }
-
-//NewDiag returns a new diagonal matrix with the input slice as the diagonal elements.
-func NewDiag(d []float64) *Dense {
-	m := NewDense(len(d), len(d), nil)
-	for i := 0; i < m.mat.Rows; i++ {
-		m.mat.Data[i*(m.mat.Stride+1)] = d[i]
-	}
-	return m
-}

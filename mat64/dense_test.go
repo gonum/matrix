@@ -912,36 +912,6 @@ func (s *S) TestIsSymmetric(c *check.C) {
 	}
 }
 
-func (s *S) TestNewDiag(c *check.C) {
-	for i, test := range []struct {
-		diag []float64
-		mdf  [][]float64
-	}{
-		{
-			[]float64{0, 1, 2},
-			[][]float64{{0, 0, 0}, {0, 1, 0}, {0, 0, 2}},
-		},
-		{
-			[]float64{0, 1, 2, 3},
-			[][]float64{{0, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 2, 0}, {0, 0, 0, 3}},
-		},
-		{
-			[]float64{2, 1, 0},
-			[][]float64{{2, 0, 0}, {0, 1, 0}, {0, 0, 0}},
-		},
-
-		{
-			[]float64{0, 1, 2},
-			[][]float64{{0, 0, 0}, {0, 1, 0}, {0, 0, 2}},
-		},
-	} {
-
-		md := NewDiag(test.diag)
-		tmd := NewDense(flatten(test.mdf))
-		c.Check(md, check.DeepEquals, tmd, check.Commentf("Test %d: obtained %v expect: %v", i, md, tmd))
-	}
-}
-
 var (
 	wd *Dense
 )
