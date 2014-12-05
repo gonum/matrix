@@ -72,6 +72,19 @@ func NewDense(r, c int, mat []float64) *Dense {
 	}}
 }
 
+// https://github.com/skelterjohn/go.matrix
+func NewDenseStacked(data [][]float64) *Dense {
+	r := len(data)
+	c := len(data[0])
+	elem := make([]float64, r*c)
+	for i := 0; i < r; i++ {
+		for j := 0; j < c; j++ {
+			elem[i*c+j] = data[i][j]
+		}
+	}
+	return NewDense(r, c, elem)
+}
+
 // DenseCopyOf returns a newly allocated copy of the elements of a.
 func DenseCopyOf(a Matrix) *Dense {
 	d := &Dense{}
@@ -442,4 +455,55 @@ func (m *Dense) Augment(a, b Matrix) {
 	m.Copy(a)
 	w := m.View(0, ac, br, bc).(*Dense)
 	w.Copy(b)
+}
+
+// https://github.com/skelterjohn/go.matrix
+// Create a Zero matrix
+func Zeros(r, c int) *Dense {
+	A := new(Dense)
+	A.mat = RawMatrix{
+		Data:   make([]float64, r*c),
+		Rows:   r,
+		Cols:   c,
+		Stride: c,
+	}
+	return A
+}
+
+// https://github.com/skelterjohn/go.matrix
+// Create an identity matrix
+func Eye(span int) *Dense {
+	A := Zeros(span, span)
+	for i := 0; i < span; i++ {
+		A.Set(i, i, 1)
+	}
+	return A
+}
+
+// https://github.com/skelterjohn/go.matrix
+// Get Sub Matrix of A of size r,c starting at i,j
+func (A *Dense) GiveSubMatrix(i, j, r, c int) *Dense {
+	B := new(Dense)
+	str := A.mat.Stride
+	B.mat = RawMatrix{
+		Data:   A.mat.Data[i*str+j : (i+(r-1))*str+(j+c)],
+		Rows:   r,
+		Cols:   c,
+		Stride: c,
+	}
+	return B
+}
+
+// https://github.com/skelterjohn/go.matrix
+func (A *Dense) Data() []float64 {
+	if A.mat.Stride == A.mat.Rows {
+		return A.mat.Data[0 : A.mat.Rows*A.mat.Cols]
+	}
+	a := make([]float64, A.mat.Rows*A.mat.Cols)
+	for i := 0; i < A.mat.Rows; i++ {
+		for j := 0; j < A.mat.Cols; j++ {
+			a[i*A.mat.Cols+j] = A.mat.Data[i*A.mat.Stride+j]
+		}
+	}
+	return a
 }
