@@ -423,15 +423,6 @@ func (m *Dense) Scale(f float64, a Matrix) {
 	}
 }
 
-func realIndex(index, nr, nstr int) int {
-	if nr == nstr {
-		return index
-	}
-	c := index / nr
-	r := index - c*nr
-	return c*nstr + r
-}
-
 func (m *Dense) Apply(f ApplyFunc, a Matrix) {
 	ar, ac := a.Dims()
 
