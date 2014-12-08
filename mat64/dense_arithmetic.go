@@ -423,16 +423,6 @@ func (m *Dense) Scale(f float64, a Matrix) {
 	}
 }
 
-func (dst *Dense) ScaleDense(f float64, src *Dense) {
-	nrows, _ := src.Dims()
-	str := src.mat.Stride
-	dst.Clone(src)
-	for k := 0; k < len(src.Data()); k++ {
-		rk := realIndex(k, nrows, str)
-		dst.mat.Data[rk] *= f
-	}
-}
-
 func realIndex(index, nr, nstr int) int {
 	if nr == nstr {
 		return index
