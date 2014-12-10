@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/blas/goblas"
+	"github.com/gonum/blas/goblas"
 	check "gopkg.in/check.v1"
 )
 
