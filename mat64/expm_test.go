@@ -8,10 +8,6 @@ import (
 	check "gopkg.in/check.v1"
 )
 
-func Test(t *testing.T) { check.TestingT(t) }
-
-type S struct{}
-
 var _ = check.Suite(&S{})
 
 func iden(span int) *Dense {
@@ -104,12 +100,6 @@ func BenchmarkExpMCUnits(b *testing.B) { exponenMat(b, 2, "c") }
 func BenchmarkExpMCTens(b *testing.B)  { exponenMat(b, 18, "c") }
 func BenchmarkExpMCHuns(b *testing.B)  { exponenMat(b, 108, "c") }
 func BenchmarkExpMCThous(b *testing.B) { exponenMat(b, 1008, "c") }
-
-// Serial Benchmark
-func BenchmarkExpMCUnits(b *testing.B) { exponenMat(b, 2, "s") }
-func BenchmarkExpMCTens(b *testing.B)  { exponenMat(b, 18, "s") }
-func BenchmarkExpMCHuns(b *testing.B)  { exponenMat(b, 108, "s") }
-func BenchmarkExpMCThous(b *testing.B) { exponenMat(b, 1008, "s") }
 
 func initParams(s int) (ba, bid, bm *Dense) {
 	ba = iden(s)
