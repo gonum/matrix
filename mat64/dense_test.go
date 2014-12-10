@@ -10,7 +10,7 @@ import (
 	"math/rand"
 	"testing"
 
-	check "launchpad.net/gocheck"
+	check "gopkg.in/check.v1"
 )
 
 func (s *S) TestNewDense(c *check.C) {
@@ -847,6 +847,68 @@ func (s *S) TestRankOne(c *check.C) {
 		// Check with the same matrix
 		a.RankOne(a, test.alpha, test.x, test.y)
 		c.Check(a.Equals(want), check.Equals, true, check.Commentf("Test %v. Want %v, Got %v", i, want, m))
+	}
+}
+
+func (s *S) TestDiag(c *check.C) {
+	for i, test := range []struct {
+		mf   [][]float64
+		diag []float64
+	}{
+		{
+			[][]float64{{0, 0, 0}, {1, 1, 1}, {2, 2, 2}},
+			[]float64{0, 1, 2},
+		},
+		{
+			[][]float64{{0, 1, 2, 3}, {0, 1, 2, 3}, {0, 1, 2, 3}, {0, 1, 2, 3}},
+			[]float64{0, 1, 2, 3},
+		},
+		{
+			[][]float64{{2, 1, 0}, {1, 1, 1}, {0, 1, 0}},
+			[]float64{2, 1, 0},
+		},
+
+		{
+			[][]float64{{0, 0, 0}, {1, 1, 1}, {2, 2, 2}, {3, 3, 3}},
+			[]float64{0, 1, 2},
+		},
+	} {
+		m := NewDense(flatten(test.mf))
+
+		diag := Diag(m, nil)
+		c.Check(diag, check.DeepEquals, test.diag, check.Commentf("Test %d: obtained %v expect: %v", i, diag, test.diag))
+
+	}
+}
+
+func (s *S) TestIsSymmetric(c *check.C) {
+	for i, test := range []struct {
+		mf  [][]float64
+		sym bool
+	}{
+		{
+			[][]float64{{0, 0, 0}, {1, 1, 1}, {2, 2, 2}},
+			false,
+		},
+		{
+			[][]float64{{0, 1, 2, 3}, {0, 1, 2, 3}, {0, 1, 2, 3}, {0, 1, 2, 3}},
+			false,
+		},
+		{
+			[][]float64{{2, 1, 0}, {1, 1, 1}, {0, 1, 0}},
+			true,
+		},
+
+		{
+			[][]float64{{0, 0, 0}, {1, 1, 1}, {2, 2, 2}, {3, 3, 3}},
+			false,
+		},
+	} {
+		m := NewDense(flatten(test.mf))
+
+		sym := IsSymmetric(m)
+		c.Check(sym, check.Equals, test.sym, check.Commentf("Test %d: obtained %v expect: %v", i, sym, test.sym))
+
 	}
 }
 

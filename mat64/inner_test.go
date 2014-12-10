@@ -4,7 +4,7 @@
 
 package mat64
 
-import check "launchpad.net/gocheck"
+import check "gopkg.in/check.v1"
 
 func (s *S) TestInner(c *check.C) {
 	for i, test := range []struct {
