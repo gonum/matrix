@@ -3,8 +3,7 @@ package mat64
 import (
 	"math"
 	"testing"
-
-	"github.com/gonum/blas/goblas"
+	
 	check "gopkg.in/check.v1"
 )
 
