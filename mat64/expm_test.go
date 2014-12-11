@@ -39,7 +39,7 @@ func newStackedDense(mv [][]float64) *Dense {
 	return NewDense(r, c, d)
 }
 
-func (s *S) SetUpSuite(c *check.C) { blasEngine = goblas.Blas{} }
+// func (s *S) SetUpSuite(c *check.C) { blasEngine = goblas.Blas{} }
 
 /*
    Trivial tests but the cases when the function fails are all known and deliberate to favor performance.
