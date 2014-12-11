@@ -18,7 +18,6 @@ func iden(span int) *Dense {
 }
 
 func skewMatrix(m *Dense) *Dense {
-	vchan := make(chan []float64, 1)
 	v := m.RawMatrix().Data
 	return newStackedDense([][]float64{
 		{0, -v[2], v[1]},
