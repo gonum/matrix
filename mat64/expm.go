@@ -85,7 +85,6 @@ func (m *Dense) ExpM(a, id *Dense) {
 
 	// Squaring
 	for i := 0.0; i < math.Pow(2,tay.j); i++ {
-		m.Clone(Ar)
-		m.Mul(m, Ar)
+		m.Mul(Ar, Ar)
 	}
 }
