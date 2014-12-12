@@ -114,12 +114,12 @@ func exponenMat(b *testing.B, size int, mode string) {
 	b.StopTimer()
 	if mode == "c" {
 		b.StartTimer()
-		for i := 0; i < 100; i++ {
+		for i := 0; i < b.N; i++ {
 			m.ExpMC(a, id)
 		}
 	} else {
 		b.StartTimer()
-		for i := 0; i < 100; i++ {
+		for i := 0; i < b.N; i++ {
 			m.ExpMS(a, id)
 		}
 	}
