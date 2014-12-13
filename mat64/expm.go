@@ -29,6 +29,7 @@ const (
 // a is the input matrix of size nxn
 // at input m is an identity matrix and on output it is filled with the result
 func (m *Dense) ExpM(a *Dense) {
+
 	var (
 		// A/tj
 		as = new(Dense)
@@ -38,7 +39,18 @@ func (m *Dense) ExpM(a *Dense) {
 
 		// Asj.Clone()
 		asjc = new(Dense)
+
+		chk = new(Dense)
 	)
+
+	// if m is not identity then panic
+	// if checking is removed and identity is created
+	// inside, then another check will have to be made
+	// to check if incoming matrix is identity matrix anyways
+	// to avoid creating one if not needed
+	if chk.Mul(m, m); !chk.Equals(m) {
+		panic("m must be identity matrix of size a")
+	}
 
 	ar, _ := a.Dims()
 
