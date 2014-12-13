@@ -95,6 +95,7 @@ func (s *S) TestExpM90(c *check.C) {
 func BenchmarkExpMRandUnits(b *testing.B) { bexp(b, 3, math.Pi/4) }
 func BenchmarkExpMRandTens(b *testing.B)  { bexp(b, 30, math.Pi/4) }
 func BenchmarkExpMRandHuns(b *testing.B)  { bexp(b, 300, math.Pi/4) }
+func BenchmarkExpMRandThous(b *testing.B) { bexp(b, 3000, math.Pi/4) }
 
 func bexp(b *testing.B, s int, f float64) {
 	b.StopTimer()
