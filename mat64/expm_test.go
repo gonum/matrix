@@ -3,6 +3,7 @@ package mat64
 import (
 	"math"
 	"math/rand"
+	"testing"
 
 	check "launchpad.net/gocheck"
 )
