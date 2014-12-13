@@ -91,16 +91,16 @@ func (s *S) TestExpM90(c *check.C) {
 	}))
 }
 
-func (s *S) BenchmarkExpMRandUnits(c *check.C) { bexp(c, 3, math.Pi/4) }
-func (s *S) BenchmarkExpMRandTens(c *check.C)  { bexp(c, 30, math.Pi/4) }
-func (s *S) BenchmarkExpMRandHuns(c *check.C)  { bexp(c, 300, math.Pi/4) }
+func BenchmarkExpMRandUnits(b *testing.B) { bexp(b, 3, math.Pi/4) }
+func BenchmarkExpMRandTens(b *testing.B)  { bexp(b, 30, math.Pi/4) }
+func BenchmarkExpMRandHuns(b *testing.B)  { bexp(b, 300, math.Pi/4) }
 
-func bexp(c *check.C, s int, f float64) {
-	c.StartTimer()
-	for i := 0; i < c.N; i++ {
+func bexp(b *testing.B, s int, f float64) {
+	b.StopTimer()
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
 		ta, _ = randDense(s, f, rand.Float64)
 		tm = iden(s)
 		tm.ExpM(ta)
 	}
-	c.StopTimer()
 }
