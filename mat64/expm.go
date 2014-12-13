@@ -23,24 +23,23 @@ const (
 	tj = 1.0
 )
 
-// private variables only for Exp function
-var (
-	// A/tj
-	as = new(Dense)
-
-	// As^tj
-	asj = new(Dense)
-
-	// Asj.Clone()
-	asjc = new(Dense)
-)
-
 // www.cs.cornell.edu/cv/researchpdf/19ways+.pdf
 // https://github.com/poliu2s/MKL/blob/master/matrix_exponential.cpp
 // ExpM calculates the exponential of matrix and stores result into receiver
 // a is the input matrix of size nxn
 // at input m is an identity matrix and on output it is filled with the result
 func (m *Dense) Exp(a *Dense) {
+	var (
+		// A/tj
+		as = new(Dense)
+	
+		// As^tj
+		asj = new(Dense)
+	
+		// Asj.Clone()
+		asjc = new(Dense)
+	)
+	
 	ar, _ := a.Dims()
 
 	// scaling here
