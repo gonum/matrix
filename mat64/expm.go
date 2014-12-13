@@ -4,7 +4,7 @@ import (
 	"math"
 )
 
-// array to cache the factorials upto 20!
+// array to cache the factorials
 var facts = make([]float64, 20)
 
 // calculate the factorials and cache it
@@ -21,70 +21,50 @@ func factorialMemoized(n float64) float64 {
 	return 1.0
 }
 
-// Taylor Series Optimum Value Pair
-type taylor struct {
-	k, j float64
-}
+// Taylor Series Constants
+const (
+	tk = 10
+	tj = 1.0
+)
+
+// private variables only for Exp function
+var (
+	// A/tj
+	as = new(Dense)
+
+	// As^tj
+	asj = new(Dense)
+
+	// Asj.Clone()
+	asjc = new(Dense)
+)
 
 // www.cs.cornell.edu/cv/researchpdf/19ways+.pdf
 // https://github.com/poliu2s/MKL/blob/master/matrix_exponential.cpp
-// ExpM computes the exponential of an nxn matrix using
-// Taylor Series + Scaling and Squaring Method
-// a is an nxn matrix, id is an identity matrix of the same size as a
-// Serial Implementation
-func (m *Dense) ExpM(a, id *Dense) {
-	ar, ac := a.Dims()
-	idr, idc := id.Dims()
-	if ar != idr && ac != idc {
-		panic(ErrShape)
-	}
+// ExpM calculates the exponential of matrix and stores result into receiver
+// a is the input matrix of size nxn
+// at input m is an identity matrix and on output it is filled with the result
+func (m *Dense) Exp(a *Dense) {
+	ar, _ := a.Dims()
 
-	tay := taylor{10, 1.0}
+	// scaling here
+	as.Scale(1/tj, a)
 
-	var (
-		// A divided by 2 power j (A / 2^j)
-		Ascl = new(Dense)
-		// Aj = A/2^j
-		Aj = new(Dense)
-		// jth power of A (A^j) divided by j factorial(j!)
-		Ajj = new(Dense)
-		// temporary Aj
-		Ajt = new(Dense)
-		// result matrix
-		Ar = new(Dense)
-	)
+	asj.Clone(as)
 
-	// A/(2^j)
-	Ascl.Scale(1/math.Pow(2, tay.j), a)
+	asjc.Clone(m)
 
-	Aj.Clone(Ascl)
-	AjD := Aj.RawMatrix().Data
-
-	Ajj.Clone(id)
-	AjjD := Ajj.RawMatrix().Data
-
-	// initialize result matrix with Eye()
-	Ar.Clone(id)
-
-	// Exponentiation
+	// Exponentiation here
 	fact_i := 0.0
-	for j := 1.0; j < tay.k; j++ {
+	for j := 1.0; j < tk; j++ {
 		fact_i = factorialMemoized(j)
 
-		for i := 0; i < ar*ac; i++ {
-			AjjD[i] = AjD[i] / fact_i
+		// asjc.Scale(1/fact_i, asj)
+		for i := 0; i < ar*ar; i++ {
+			asjc.mat.Data[i] = asj.mat.Data[i] / fact_i
 		}
 
-		Ajt.Clone(Aj)
-
-		// I + Ajj
-		Ar.Add(Ajj, Ar)
-
-		Aj.Mul(Ajt, Ascl)
-	}
-
-	// Squaring
-	for i := 0.0; i < math.Pow(2,tay.j); i++ {
-		m.Mul(Ar, Ar)
+		m.Add(m, asjc)
+		asj.Mul(asj, as)
 	}
 }
