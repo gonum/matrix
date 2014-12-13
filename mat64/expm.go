@@ -1,9 +1,5 @@
 package mat64
 
-import (
-	"math"
-)
-
 // array to cache the factorials
 var facts = make([]float64, 20)
 
