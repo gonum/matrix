@@ -1,22 +1,5 @@
 package mat64
 
-// array to cache the factorials
-var facts = make([]float64, 20)
-
-// calculate the factorials and cache it
-func factorialMemoized(n float64) float64 {
-	if facts[int(n)] != 0 {
-		res := facts[int(n)]
-		return res
-	}
-
-	if n > 0 {
-		res := n * factorialMemoized(n-1)
-		return res
-	}
-	return 1.0
-}
-
 // Taylor Series Constants
 const (
 	tk = 10
@@ -62,9 +45,9 @@ func (m *Dense) ExpM(a *Dense) {
 	asjc.Clone(m)
 
 	// Exponentiation here
-	fact_i := 0.0
+	fact_i := 1.0
 	for j := 1.0; j < tk; j++ {
-		fact_i = factorialMemoized(j)
+		fact_i *= j
 
 		// asjc.Scale(1/fact_i, asj)
 		for i := 0; i < ar*ar; i++ {
