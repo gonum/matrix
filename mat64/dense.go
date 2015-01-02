@@ -413,7 +413,9 @@ func (m *Dense) T() {
 	d[cycle] = m.mat.Data[cycle]
 	m.mat.Rows, m.mat.Cols = m.mat.Cols, m.mat.Rows
 	m.mat.Stride = m.mat.Cols
-	m.mat.Data = d
+	for i, v := range d {
+		m.mat.Data[i] = v
+	}
 }
 
 func (m *Dense) Stack(a, b Matrix) {
