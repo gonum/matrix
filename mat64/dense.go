@@ -45,7 +45,7 @@ var (
 	_ Applyer = matrix
 
 	_ TransposeCopier = matrix
-	// _ TransposeViewer = matrix
+	_ Transposer      = matrix
 
 	_ Tracer = matrix
 	_ Normer = matrix
@@ -377,6 +377,27 @@ func (m *Dense) TCopy(a Matrix) {
 		}
 	}
 	*m = w
+}
+
+func (m *Dense) T() {
+	// TODO(jonlawlor): use a fully in-place transpose, without
+	// creating another slice with the same size.
+	// create a new slice
+	d := make([]float64, len(m.mat.Data))
+
+	// copy values into the appropriate location
+	cycle := m.mat.Rows*m.mat.Cols - 1
+	last := len(m.mat.Data) - 1
+	for i, v := range m.mat.Data {
+		if i == last {
+			break
+		}
+		d[i*m.mat.Rows%cycle] = v
+	}
+	d[last] = m.mat.Data[last]
+	m.mat.Rows, m.mat.Cols = m.mat.Cols, m.mat.Rows
+	m.mat.Stride = m.mat.Cols
+	m.mat.Data = d
 }
 
 func (m *Dense) Stack(a, b Matrix) {
