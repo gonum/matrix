@@ -28,6 +28,9 @@ type Triangular struct {
 }
 
 func NewTriangular(n int, t TriType, mat []float64) *Triangular {
+	if n < 0 {
+		panic("mat64: negative dimension")
+	}
 	if mat != nil && n*n != len(mat) {
 		panic(ErrShape)
 	}

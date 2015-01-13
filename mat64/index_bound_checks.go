@@ -62,7 +62,8 @@ func (t *Triangular) at(r, c int) float64 {
 	return t.mat.Data[r*t.mat.Stride+c]
 }
 
-// Set sets the element at row r and column c. Set panics if the
+// Set sets the element at row r and column c. Set panics if the location is outside
+// the appropriate half of the matrix.
 func (t *Triangular) Set(r, c int, v float64) {
 	t.set(r, c, v)
 }
@@ -76,7 +77,8 @@ func (t *Triangular) set(r, c int, v float64) {
 	}
 	if t.mat.Uplo == blas.Upper && r > c {
 		panic("mat64: triangular set out of bounds")
-	} else if t.mat.Uplo == blas.Lower && r < c {
+	}
+	if t.mat.Uplo == blas.Lower && r < c {
 		panic("mat64: triangular set out of bounds")
 	}
 	t.mat.Data[r*t.mat.Stride+c] = v
