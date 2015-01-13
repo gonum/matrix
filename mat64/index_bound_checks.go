@@ -8,16 +8,18 @@
 
 package mat64
 
+import "github.com/gonum/blas"
+
 func (m *Dense) At(r, c int) float64 {
 	return m.at(r, c)
 }
 
 func (m *Dense) at(r, c int) float64 {
 	if r >= m.mat.Rows || r < 0 {
-		panic("index error: row access out of bounds")
+		panic(ErrRowAccess)
 	}
 	if c >= m.mat.Cols || c < 0 {
-		panic("index error: column access out of bounds")
+		panic(ErrColAccess)
 	}
 	return m.mat.Data[r*m.mat.Stride+c]
 }
@@ -28,10 +30,54 @@ func (m *Dense) Set(r, c int, v float64) {
 
 func (m *Dense) set(r, c int, v float64) {
 	if r >= m.mat.Rows || r < 0 {
-		panic("index error: row access out of bounds")
+		panic(ErrRowAccess)
 	}
 	if c >= m.mat.Cols || c < 0 {
-		panic("index error: column access out of bounds")
+		panic(ErrColAccess)
 	}
 	m.mat.Data[r*m.mat.Stride+c] = v
+}
+
+// At returns the element at row r and column c.
+func (t *Triangular) At(r, c int) float64 {
+	return t.at(r, c)
+}
+
+func (t *Triangular) at(r, c int) float64 {
+	if r >= t.mat.N || r < 0 {
+		panic(ErrRowAccess)
+	}
+	if c >= t.mat.N || c < 0 {
+		panic(ErrColAccess)
+	}
+	if t.mat.Uplo == blas.Upper {
+		if r > c {
+			return 0
+		}
+		return t.mat.Data[r*t.mat.Stride+c]
+	}
+	if r < c {
+		return 0
+	}
+	return t.mat.Data[r*t.mat.Stride+c]
+}
+
+// Set sets the element at row r and column c. Set panics if the
+func (t *Triangular) Set(r, c int, v float64) {
+	t.set(r, c, v)
+}
+
+func (t *Triangular) set(r, c int, v float64) {
+	if r >= t.mat.N || r < 0 {
+		panic(ErrRowAccess)
+	}
+	if c >= t.mat.N || c < 0 {
+		panic(ErrColAccess)
+	}
+	if t.mat.Uplo == blas.Upper && r > c {
+		panic("mat64: triangular set out of bounds")
+	} else if t.mat.Uplo == blas.Lower && r < c {
+		panic("mat64: triangular set out of bounds")
+	}
+	t.mat.Data[r*t.mat.Stride+c] = v
 }

@@ -394,6 +394,8 @@ const (
 	ErrShape           = Error("mat64: dimension mismatch")
 	ErrIllegalStride   = Error("mat64: illegal stride")
 	ErrPivot           = Error("mat64: malformed pivot list")
+	ErrRowAccess       = Error("index error: row access out of bounds")
+	ErrColAccess       = Error("index error: column access out of bounds")
 )
 
 func min(a, b int) int {
