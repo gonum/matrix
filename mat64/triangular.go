@@ -19,14 +19,16 @@ const (
 	Lower TriType = TriType(blas.Lower)
 )
 
-// A triangular matrix has the same underlying data representation as a Dense matrix
-// but the entries that aren't in the populated half are completely ignored.
-
 // Triangular represents an upper or lower triangular matrix.
 type Triangular struct {
 	mat blas64.Triangular
 }
 
+// NewTriangular constructs an n x n triangular matrix with the given orientation.
+// if len(mat) == n * n, mat will be used to hold the underlying data, or if
+// mat == nil, new data will be allocated.
+// The underlying data representation is the same as a Dense matrix, except
+// the values of the entries in the opposite half are completely ignored.
 func NewTriangular(n int, t TriType, mat []float64) *Triangular {
 	if n < 0 {
 		panic("mat64: negative dimension")
