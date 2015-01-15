@@ -8,10 +8,10 @@ import (
 
 func (s *S) TestNewTriangular(c *check.C) {
 	for i, test := range []struct {
-		data []float64
-		N    int
-		t    TriType
-		mat  *Triangular
+		data  []float64
+		N     int
+		upper bool
+		mat   *Triangular
 	}{
 		{
 			data: []float64{
@@ -19,18 +19,18 @@ func (s *S) TestNewTriangular(c *check.C) {
 				4, 5, 6,
 				7, 8, 9,
 			},
-			N: 3,
-			t: Upper,
+			N:     3,
+			upper: true,
 			mat: &Triangular{blas64.Triangular{
 				N:      3,
 				Stride: 3,
-				Uplo:   blas.Uplo(Upper),
+				Uplo:   blas.Upper,
 				Data:   []float64{1, 2, 3, 4, 5, 6, 7, 8, 9},
 				Diag:   blas.NonUnit,
 			}},
 		},
 	} {
-		t := NewTriangular(test.N, test.t, test.data)
+		t := NewTriangular(test.N, test.upper, test.data)
 		rows, cols := t.Dims()
 		c.Check(rows, check.Equals, test.N, check.Commentf("Test %d", i))
 		c.Check(cols, check.Equals, test.N, check.Commentf("Test %d", i))
