@@ -15,7 +15,7 @@ type Symmetric struct {
 // underlying data, or if mat == nil, new data will be allocated.
 // The underlying data representation is the same as a Dense matrix, except
 // the values of the entries in the opposite half are completely ignored.
-func NewSymmetric(n int, t triType, mat []float64) *Symmetric {
+func NewSymmetric(n int, upper bool, mat []float64) *Symmetric {
 	if n < 0 {
 		panic("mat64: negative dimension")
 	}
@@ -25,15 +25,15 @@ func NewSymmetric(n int, t triType, mat []float64) *Symmetric {
 	if mat == nil {
 		mat = make([]float64, n*n)
 	}
-	if t != Upper && t != Lower {
-		panic("mat64: bad TriSide")
+	uplo := blas.Lower
+	if upper {
+		uplo = blas.Upper
 	}
 	return &Symmetric{blas64.Symmetric{
 		N:      n,
 		Stride: n,
 		Data:   mat,
-		Uplo:   blas.Uplo(t),
-		Diag:   blas.NonUnit,
+		Uplo:   uplo,
 	}}
 }
 
