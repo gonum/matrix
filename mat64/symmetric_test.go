@@ -57,19 +57,19 @@ func (s *S) TestTriAtSet(c *check.C) {
 	c.Check(func() { t.At(0, -1) }, check.PanicMatches, ErrColAccess.Error(), check.Commentf("Test col out of bounds"))
 
 	// Check Set out of bounds
-	c.Check(func() { t.Set(rows, 0, 1.2) }, check.PanicMatches, ErrRowAccess.Error(), check.Commentf("Test row out of bounds"))
-	c.Check(func() { t.Set(0, cols, 1.2) }, check.PanicMatches, ErrColAccess.Error(), check.Commentf("Test col out of bounds"))
-	c.Check(func() { t.Set(rows+1, 0, 1.2) }, check.PanicMatches, ErrRowAccess.Error(), check.Commentf("Test row out of bounds"))
-	c.Check(func() { t.Set(0, cols+1, 1.2) }, check.PanicMatches, ErrColAccess.Error(), check.Commentf("Test col out of bounds"))
-	c.Check(func() { t.Set(-1, 0, 1.2) }, check.PanicMatches, ErrRowAccess.Error(), check.Commentf("Test row out of bounds"))
-	c.Check(func() { t.Set(0, -1, 1.2) }, check.PanicMatches, ErrColAccess.Error(), check.Commentf("Test col out of bounds"))
+	c.Check(func() { t.SetSym(rows, 0, 1.2) }, check.PanicMatches, ErrRowAccess.Error(), check.Commentf("Test row out of bounds"))
+	c.Check(func() { t.SetSym(0, cols, 1.2) }, check.PanicMatches, ErrColAccess.Error(), check.Commentf("Test col out of bounds"))
+	c.Check(func() { t.SetSym(rows+1, 0, 1.2) }, check.PanicMatches, ErrRowAccess.Error(), check.Commentf("Test row out of bounds"))
+	c.Check(func() { t.SetSym(0, cols+1, 1.2) }, check.PanicMatches, ErrColAccess.Error(), check.Commentf("Test col out of bounds"))
+	c.Check(func() { t.SetSym(-1, 0, 1.2) }, check.PanicMatches, ErrRowAccess.Error(), check.Commentf("Test row out of bounds"))
+	c.Check(func() { t.SetSym(0, -1, 1.2) }, check.PanicMatches, ErrColAccess.Error(), check.Commentf("Test col out of bounds"))
 
 	c.Check(t.At(2, 1), check.Equals, 6.0)
 	c.Check(t.At(1, 2), check.Equals, 6.0)
-	t.Set(1, 2, 15)
+	t.SetSym(1, 2, 15)
 	c.Check(t.At(2, 1), check.Equals, 15.0)
 	c.Check(t.At(1, 2), check.Equals, 15.0)
-	t.Set(2, 1, 12)
+	t.SetSym(2, 1, 12)
 	c.Check(t.At(2, 1), check.Equals, 12.0)
 	c.Check(t.At(1, 2), check.Equals, 12.0)
 }

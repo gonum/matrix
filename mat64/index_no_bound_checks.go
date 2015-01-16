@@ -76,6 +76,7 @@ func (t *Symmetric) At(r, c int) float64 {
 	}
 	return t.at(r, c)
 }
+
 func (t *Symmetric) at(r, c int) float64 {
 	if t.mat.Uplo == blas.Upper {
 		if r > c {
@@ -90,7 +91,7 @@ func (t *Symmetric) at(r, c int) float64 {
 }
 
 // SetSym sets the elements at (r,c) and (c,r) to the value v.
-func (t *Symmetric) Set(r, c int, v float64) {
+func (t *Symmetric) SetSym(r, c int, v float64) {
 	if r >= t.mat.N || r < 0 {
 		panic(ErrRowAccess)
 	}
@@ -102,6 +103,7 @@ func (t *Symmetric) Set(r, c int, v float64) {
 	}
 	t.set(r, c, v)
 }
+
 func (t *Symmetric) set(r, c int, v float64) {
 	t.mat.Data[r*t.mat.Stride+c] = v
 }
