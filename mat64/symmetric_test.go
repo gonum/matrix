@@ -34,6 +34,8 @@ func (s *S) TestNewSymmetric(c *check.C) {
 		c.Check(rows, check.Equals, test.N, check.Commentf("Test %d", i))
 		c.Check(cols, check.Equals, test.N, check.Commentf("Test %d", i))
 		c.Check(t, check.DeepEquals, test.mat, check.Commentf("Test %d", i))
+
+		c.Check(func() { NewSymmetric(3, test.upper, []float64{1, 2}) }, check.PanicMatches, ErrShape.Error())
 	}
 }
 
