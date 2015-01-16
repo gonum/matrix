@@ -10,7 +10,7 @@ type Symmetric struct {
 	mat blas64.Symmetric
 }
 
-// NewTriangular constructs an n x n triangular matrix where the data is stored
+// NewSymmetric constructs an n x n symmetric matrix where the data is stored
 // in the given orientation. If len(mat) == n * n, mat will be used to hold the
 // underlying data, or if mat == nil, new data will be allocated.
 // The underlying data representation is the same as a Dense matrix, except
