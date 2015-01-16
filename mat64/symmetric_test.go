@@ -65,10 +65,14 @@ func (s *S) TestTriAtSet(c *check.C) {
 	c.Check(func() { t.Set(1, 2, 1.2) }, check.PanicMatches, "mat64: symmetric set out of bounds", check.Commentf("Test upper access"))
 
 	c.Check(t.At(2, 1), check.Equals, 8.0)
+	c.Check(t.At(1, 2), check.Equals, 8.0)
 	t.Set(2, 1, 15)
 	c.Check(t.At(2, 1), check.Equals, 15.0)
+	c.Check(t.At(1, 2), check.Equals, 15.0)
 	t.mat.Uplo = blas.Upper
 	c.Check(t.At(1, 2), check.Equals, 6.0)
+	c.Check(t.At(2, 1), check.Equals, 6.0)
 	t.Set(1, 2, 15)
 	c.Check(t.At(1, 2), check.Equals, 15.0)
+	c.Check(t.At(2, 1), check.Equals, 15.0)
 }
