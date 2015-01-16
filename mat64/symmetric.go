@@ -14,8 +14,8 @@ type Symmetric struct {
 // in the given orientation. If len(mat) == n * n, mat will be used to hold the
 // underlying data, or if mat == nil, new data will be allocated.
 // The underlying data representation is the same as a Dense matrix, except
-// the values of the entries in the opposite half are completely ignored.
-func NewSymmetric(n int, upper bool, mat []float64) *Symmetric {
+// the values of the entries in the lower triangular portion are completely ignored.
+func NewSymmetric(n int, mat []float64) *Symmetric {
 	if n < 0 {
 		panic("mat64: negative dimension")
 	}
@@ -25,15 +25,11 @@ func NewSymmetric(n int, upper bool, mat []float64) *Symmetric {
 	if mat == nil {
 		mat = make([]float64, n*n)
 	}
-	uplo := blas.Lower
-	if upper {
-		uplo = blas.Upper
-	}
 	return &Symmetric{blas64.Symmetric{
 		N:      n,
 		Stride: n,
 		Data:   mat,
-		Uplo:   uplo,
+		Uplo:   blas.Upper,
 	}}
 }
 

@@ -89,8 +89,7 @@ func (t *Symmetric) at(r, c int) float64 {
 	return t.mat.Data[r*t.mat.Stride+c]
 }
 
-// Set sets the element at row r and column c. Set panics if the location is outside
-// the appropriate half of the matrix.
+// SetSym sets the elements at (r,c) and (c,r) to the value v.
 func (t *Symmetric) Set(r, c int, v float64) {
 	if r >= t.mat.N || r < 0 {
 		panic(ErrRowAccess)
@@ -98,11 +97,8 @@ func (t *Symmetric) Set(r, c int, v float64) {
 	if c >= t.mat.N || c < 0 {
 		panic(ErrColAccess)
 	}
-	if t.mat.Uplo == blas.Upper && r > c {
-		panic("mat64: symmetric set out of bounds")
-	}
-	if t.mat.Uplo == blas.Lower && r < c {
-		panic("mat64: symmetric set out of bounds")
+	if r > c {
+		r, c = c, r
 	}
 	t.set(r, c, v)
 }
