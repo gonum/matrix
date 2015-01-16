@@ -5,9 +5,9 @@
 // Package mat64 provides basic linear algebra operations for float64 matrices.
 //
 // Note that in all interfaces that assign the result to the receiver, the receiver must
-// be either the correct dimensions for the result or the zero value for the concrete type
-// of the matrix. In the latter case, matrix data is allocated and stored in the receiver.
-// If the matrix dimensions do not match the result, the method must panic.
+// be either the correct dimensions for the result or a zero-sized matrix. In the latter
+// case, matrix data is allocated and stored in the receiver. If the matrix dimensions
+// do not match the result, the method must panic.
 package mat64
 
 import (
@@ -81,9 +81,12 @@ type Cloner interface {
 	Clone(a Matrix)
 }
 
-// A Reset can zero the dimensions of the matrix so that it can be reused as
-// the receiver of a dimensionally restricted operation. This is commonly used
-// when the matrix is being used a a workspace or temporary matrix.
+// A Reseter can reset the matrix so that it can be reused as the receiver of a dimensionally
+// restricted operation. This is commonly used when the matrix is being used a a workspace
+// or temporary matrix.
+//
+// If the matrix is a view, using the reset matrix may result in data corruption in elements
+// outside the view.
 type Reseter interface {
 	Reset()
 }
@@ -96,12 +99,21 @@ type Copier interface {
 }
 
 // A Viewer returns a submatrix view of the Matrix parameter, starting at row i, column j
-// and extending r rows and c columns. If i or j are out of range, or r or c extend beyond
-// the bounds of the matrix View will panic with ErrIndexOutOfRange. The returned matrix
-// must retain the receiver's reference to the original matrix such that changes in the
-// elements of the submatrix are reflected in the original and vice versa.
+// and extending r rows and c columns. If i or j are out of range, or r or c are zero or
+// extend beyond the bounds of the matrix View will panic with ErrIndexOutOfRange. The
+// returned matrix must retain the receiver's reference to the original matrix such that
+// changes in the elements of the submatrix are reflected in the original and vice versa.
 type Viewer interface {
 	View(i, j, r, c int) Matrix
+}
+
+// A Grower can grow the size of the represented matrix by the given number of rows and columns.
+// Growing beyond the size given by the Caps method will result in the allocation of a new
+// matrix and copying of the elements. If Grow is called with negative increments it will
+// panic with ErrIndexOutOfRange.
+type Grower interface {
+	Caps() (r, c int)
+	Grow(r, c int) Matrix
 }
 
 // A Normer can return the specified matrix norm, o of the matrix represented by the receiver.
@@ -336,7 +348,7 @@ func Solve(a, b Matrix) (x *Dense, err error) {
 // A Panicker is a function that may panic.
 type Panicker func()
 
-// Maybe will recover a panic with a type matrix.Error from fn, and return this error.
+// Maybe will recover a panic with a type mat64.Error from fn, and return this error.
 // Any other error is re-panicked.
 func Maybe(fn Panicker) (err error) {
 	defer func() {
@@ -355,7 +367,7 @@ func Maybe(fn Panicker) (err error) {
 // A FloatPanicker is a function that returns a float64 and may panic.
 type FloatPanicker func() float64
 
-// MaybeFloat will recover a panic with a type matrix.Error from fn, and return this error.
+// MaybeFloat will recover a panic with a type mat64.Error from fn, and return this error.
 // Any other error is re-panicked.
 func MaybeFloat(fn FloatPanicker) (f float64, err error) {
 	defer func() {
@@ -370,15 +382,7 @@ func MaybeFloat(fn FloatPanicker) (f float64, err error) {
 	return fn(), nil
 }
 
-// Must can be used to wrap a function returning an error.
-// If the returned error is not nil, Must will panic.
-func Must(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
-
-// Type Error represents matrix package errors. These errors can be recovered by Maybe wrappers.
+// Type Error represents matrix handling errors. These errors can be recovered by Maybe wrappers.
 type Error string
 
 func (err Error) Error() string { return string(err) }
@@ -419,4 +423,24 @@ func use(f []float64, l int) []float64 {
 		return f[:l]
 	}
 	return make([]float64, l)
+}
+
+// useZeroed returns a float64 slice with l elements, using f if it
+// has the necessary capacity, otherwise creating a new slice. The
+// elements of the returned slice are guaranteed to be zero.
+func useZeroed(f []float64, l int) []float64 {
+	if l <= cap(f) {
+		f = f[:l]
+		zero(f)
+		return f
+	}
+	return make([]float64, l)
+}
+
+// zero does a fast zeroing of the given slice's elements.
+func zero(f []float64) {
+	f[0] = 0
+	for i := 1; i < len(f); {
+		i += copy(f[i:], f[:i])
+	}
 }
