@@ -8,8 +8,6 @@
 
 package mat64
 
-import "github.com/gonum/blas"
-
 func (m *Dense) At(r, c int) float64 {
 	if r >= m.mat.Rows || r < 0 {
 		panic(ErrRowAccess)
@@ -78,13 +76,7 @@ func (t *Symmetric) At(r, c int) float64 {
 }
 
 func (t *Symmetric) at(r, c int) float64 {
-	if t.mat.Uplo == blas.Upper {
-		if r > c {
-			r, c = c, r
-		}
-		return t.mat.Data[r*t.mat.Stride+c]
-	}
-	if r < c {
+	if r > c {
 		r, c = c, r
 	}
 	return t.mat.Data[r*t.mat.Stride+c]
