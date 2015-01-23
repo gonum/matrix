@@ -10,9 +10,8 @@ type Symmetric struct {
 	mat blas64.Symmetric
 }
 
-// NewSymmetric constructs an n x n symmetric matrix where the data is stored
-// in the given orientation. If len(mat) == n * n, mat will be used to hold the
-// underlying data, or if mat == nil, new data will be allocated.
+// NewSymmetric constructs an n x n symmetric matrix. If len(mat) == n * n,
+// mat will be used to hold the underlying data, or if mat == nil, new data will be allocated.
 // The underlying data representation is the same as a Dense matrix, except
 // the values of the entries in the lower triangular portion are completely ignored.
 func NewSymmetric(n int, mat []float64) *Symmetric {
