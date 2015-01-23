@@ -90,12 +90,12 @@ func (t *Symmetric) SetSym(r, c int, v float64) {
 	if c >= t.mat.N || c < 0 {
 		panic(ErrColAccess)
 	}
-	if r > c {
-		r, c = c, r
-	}
 	t.set(r, c, v)
 }
 
 func (t *Symmetric) set(r, c int, v float64) {
+	if r > c {
+		r, c = c, r
+	}
 	t.mat.Data[r*t.mat.Stride+c] = v
 }
