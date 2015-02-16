@@ -38,7 +38,7 @@ var (
 	_ Applyer = matrix
 
 	_ TransposeCopier = matrix
-	// _ TransposeViewer = matrix
+	_ Transposer      = matrix
 
 	_ Tracer = matrix
 	_ Normer = matrix
@@ -473,6 +473,45 @@ func (m *Dense) TCopy(a Matrix) {
 		}
 	}
 	*m = w
+}
+
+func (m *Dense) T() {
+	cycle := m.mat.Rows*m.mat.Cols - 1
+
+	if m.mat.Rows == m.mat.Cols && m.mat.Cols == m.mat.Stride {
+		// If the matrix is square, then there are no transposition
+		// cycles that are larger than 2 elements, which means we can
+		// do simple swaps instead of using additional memory.
+		// TODO(jonlawlor): reduce cache misses.
+		for i := 0; i < cycle; i++ {
+			j := i * m.mat.Rows % cycle
+			if i < j {
+				continue
+			}
+			m.mat.Data[j], m.mat.Data[i] = m.mat.Data[i], m.mat.Data[j]
+		}
+		return
+	}
+	// TODO(jonlawlor): use a more efficient algorithm, particularly
+	// one that doesn't require a full copy of the data, but also
+	// preferably one that reduces cache misses.
+
+	// Create a new slice which holds the transposed values.
+	d := make([]float64, len(m.mat.Data))
+
+	// Copy values into their transposed location.
+	for i, v := range m.mat.Data {
+		if i == cycle {
+			break
+		}
+		d[i*m.mat.Rows%cycle] = v
+	}
+	d[cycle] = m.mat.Data[cycle]
+	m.mat.Rows, m.mat.Cols = m.mat.Cols, m.mat.Rows
+	m.mat.Stride = m.mat.Cols
+	for i, v := range d {
+		m.mat.Data[i] = v
+	}
 }
 
 func (m *Dense) Stack(a, b Matrix) {

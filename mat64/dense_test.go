@@ -954,7 +954,7 @@ func (s *S) TestLU(c *check.C) {
 	}
 }
 
-func (s *S) TestTranspose(c *check.C) {
+func (s *S) TestTransposeCopy(c *check.C) {
 	for i, test := range []struct {
 		a, t [][]float64
 	}{
@@ -997,6 +997,47 @@ func (s *S) TestTranspose(c *check.C) {
 		zero(rr.mat.Data)
 		rr.TCopy(&r)
 		c.Check(rr.Equals(a), check.Equals, true, check.Commentf("Test %d: %v transpose = I", i, test.a, test.t))
+	}
+}
+
+func (s *S) TestTranspose(c *check.C) {
+	for i, test := range []struct {
+		a, t [][]float64
+	}{
+		{
+			[][]float64{{0, 0, 0}, {0, 0, 0}, {0, 0, 0}},
+			[][]float64{{0, 0, 0}, {0, 0, 0}, {0, 0, 0}},
+		},
+		{
+			[][]float64{{1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
+			[][]float64{{1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
+		},
+		{
+			[][]float64{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}},
+			[][]float64{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}},
+		},
+		{
+			[][]float64{{-1, 0, 0}, {0, -1, 0}, {0, 0, -1}},
+			[][]float64{{-1, 0, 0}, {0, -1, 0}, {0, 0, -1}},
+		},
+		{
+			[][]float64{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}},
+			[][]float64{{1, 4, 7}, {2, 5, 8}, {3, 6, 9}},
+		},
+		{
+			[][]float64{{1, 2, 3}, {4, 5, 6}},
+			[][]float64{{1, 4}, {2, 5}, {3, 6}},
+		},
+	} {
+		a := NewDense(flatten(test.a))
+		b := NewDense(flatten(test.a))
+		t := NewDense(flatten(test.t))
+
+		a.T()
+		c.Check(a.Equals(t), check.Equals, true, check.Commentf("Test %d: %v transpose = %v", i, a.mat.Data, test.t))
+
+		a.T()
+		c.Check(a.Equals(b), check.Equals, true, check.Commentf("Test %d: %v transpose = %v", i, a.mat.Data, b))
 	}
 }
 

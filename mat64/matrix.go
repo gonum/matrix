@@ -149,10 +149,9 @@ type TransposeCopier interface {
 	TCopy(a Matrix)
 }
 
-// A Transposer can create a transposed view matrix from the matrix represented by the receiver.
-// Changes made to the returned Matrix may be reflected in the original.
+// A Transposer can transpose a matrix in place.
 type Transposer interface {
-	T() Matrix
+	T()
 }
 
 // A Deter can return the determinant of the represented matrix.
