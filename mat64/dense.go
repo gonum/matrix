@@ -65,6 +65,11 @@ type Dense struct {
 	capRows, capCols int
 }
 
+// NewDense initializes and returns a *Dense of size r-by-c.
+// Data stores in mat should be row-major, i.e., the (i, j) element
+// in matrix should be at (i*c + j)-th position in mat.
+// Note that NewDense(0, 0, nil) can be used for undetermined size
+// matrix initialization.
 func NewDense(r, c int, mat []float64) *Dense {
 	if mat != nil && r*c != len(mat) {
 		panic(ErrShape)
@@ -104,6 +109,7 @@ func (m *Dense) isZero() bool {
 	return m.mat.Stride == 0
 }
 
+// Dims returns number of rows and number of columns.
 func (m *Dense) Dims() (r, c int) { return m.mat.Rows, m.mat.Cols }
 
 func (m *Dense) Caps() (r, c int) { return m.capRows, m.capCols }
@@ -151,6 +157,8 @@ func (m *Dense) SetCol(j int, src []float64) int {
 	return min(len(src), m.mat.Rows)
 }
 
+// Row will copy the i-th row into dst and return it. If
+// dst is nil, it will make a new slice for copying/returning.
 func (m *Dense) Row(dst []float64, i int) []float64 {
 	if i >= m.mat.Rows || i < 0 {
 		panic(ErrRowAccess)
@@ -441,6 +449,7 @@ func (m *Dense) zeroUpper() {
 	}
 }
 
+// TCopy will copy the transpose of a and save it into m.
 func (m *Dense) TCopy(a Matrix) {
 	ar, ac := a.Dims()
 

@@ -49,6 +49,8 @@ const (
 	small   = math.SmallestNonzeroFloat64
 )
 
+// Norm calculates general matrix p-norm of m. It currently supports
+// p = 1, -1, +Inf, -Inf, 2, -2.
 func (m *Dense) Norm(ord float64) float64 {
 	var n float64
 	switch {
@@ -110,6 +112,7 @@ func (m *Dense) Norm(ord float64) float64 {
 	return n
 }
 
+// Add adds a and b element-wise and saves the result into m.
 func (m *Dense) Add(a, b Matrix) {
 	ar, ac := a.Dims()
 	br, bc := b.Dims()
@@ -360,6 +363,10 @@ func (m *Dense) Dot(b Matrix) float64 {
 	return d
 }
 
+// Mul multiplies two matrix and saves the result in m. Note that the
+// arguments a or b should be either Matrix or *Dense.
+// Therfore, if a or b is of type Dense, you'll need to pass them by address.
+// For example: m.Mul(a, &b) when a is *Dense and b is Dense.
 func (m *Dense) Mul(a, b Matrix) {
 	ar, ac := a.Dims()
 	br, bc := b.Dims()
