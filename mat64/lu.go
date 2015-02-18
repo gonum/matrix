@@ -137,7 +137,7 @@ func LUGaussian(a *Dense) LUFactors {
 		}
 
 		// Compute multipliers and eliminate k-th column.
-		if lu.at(k, k) != 0 {
+		if k >= m || lu.at(k, k) != 0 {
 			for i := k + 1; i < m; i++ {
 				lu.set(i, k, lu.at(i, k)/lu.at(k, k))
 				for j := k + 1; j < n; j++ {
@@ -185,7 +185,7 @@ func (f LUFactors) U() *Dense {
 	lu := f.LU
 	m, n := lu.Dims()
 	u := NewDense(m, n, nil)
-	for i := 0; i < n; i++ {
+	for i := 0; i < m; i++ {
 		for j := 0; j < n; j++ {
 			if i <= j {
 				u.set(i, j, lu.at(i, j))
