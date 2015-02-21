@@ -11,7 +11,7 @@ import (
 	"github.com/gonum/blas/blas64"
 )
 
-// Min returns the lowest element of the receiver.
+// Min returns the smallest element of the receiver.
 func (m *Dense) Min() float64 {
 	min := m.mat.Data[0]
 	for k := 0; k < m.mat.Rows; k++ {
@@ -22,7 +22,7 @@ func (m *Dense) Min() float64 {
 	return min
 }
 
-// Min returns the lowest element of the receiver.
+// Max returns the largest element of the receiver.
 func (m *Dense) Max() float64 {
 	max := m.mat.Data[0]
 	for k := 0; k < m.mat.Rows; k++ {
@@ -33,7 +33,7 @@ func (m *Dense) Max() float64 {
 	return max
 }
 
-// Trace returns the trace of the matrix represented by the receiver.
+// Trace returns the trace of the matrix.
 //
 // See the Tracer interface for more information.
 func (m *Dense) Trace() float64 {
@@ -54,8 +54,7 @@ const (
 	small   = math.SmallestNonzeroFloat64
 )
 
-// Norm returns the specified matrix p-norm of the matrix represented by the receiver.
-// It currently supports p = 1, -1, +Inf, -Inf, 2, -2.
+// Norm returns the specified matrix p-norm of the receiver.
 //
 // See the Normer interface for more information.
 func (m *Dense) Norm(ord float64) float64 {
@@ -231,7 +230,8 @@ func (m *Dense) Sub(a, b Matrix) {
 	}
 }
 
-// MulElem performs element-wise multiplication of the matrices represented by a and b, placing the result in the receiver.
+// MulElem performs element-wise multiplication of  a and b, placing the result
+// in the receiver.
 //
 // See the ElemMuler interface for more information.
 func (m *Dense) MulElem(a, b Matrix) {
@@ -340,7 +340,8 @@ func (m *Dense) DivElem(a, b Matrix) {
 	}
 }
 
-// Dot returns the sum of the element-wise products of the elements of the receiver and b.
+// Dot returns the sum of the element-wise products of the elements of the
+// receiver and b.
 //
 // See the Dotter interface for more information.
 func (m *Dense) Dot(b Matrix) float64 {
@@ -806,7 +807,8 @@ func (m *Dense) Scale(f float64, a Matrix) {
 	}
 }
 
-// Apply applies an Applyfunc f to each of the elements of the matrix represented by a, placing the resulting matrix in the receiver.
+// Apply applies an Applyfunc f to each of the elements of a, placing the
+// resulting matrix in the receiver.
 //
 // See the Applyer interface for more information.
 func (m *Dense) Apply(f ApplyFunc, a Matrix) {
@@ -865,7 +867,8 @@ func (m *Dense) Sum() float64 {
 	return s
 }
 
-// Equals returns true if b and the receiver have the same size and contain all equal elements.
+// Equals returns true if b and the receiver have the same size and contain all
+// equal elements.
 //
 // See the Equaler interface for more information.
 func (m *Dense) Equals(b Matrix) bool {
@@ -909,8 +912,8 @@ func (m *Dense) Equals(b Matrix) bool {
 	return true
 }
 
-// EqualsApprox compares the matrices represented by b and the receiver, with tolerance for
-// element-wise equailty specified by epsilon
+// EqualsApprox compares the matrices represented by b and the receiver, with
+// tolerance for element-wise equailty specified by epsilon
 //
 // See the ApproxEqualer interface for more information.
 func (m *Dense) EqualsApprox(b Matrix, epsilon float64) bool {
