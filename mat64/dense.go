@@ -69,8 +69,7 @@ type Dense struct {
 // mat argument is nil, a new data slice is allocated.
 // The data must be arranged in row-major order, i.e. the (i*c + j)-th element
 // in mat is the {i, j}-th element in the matrix.
-// Also note that NewDense(0, 0, nil) can be used for undetermined size matrix
-// initialization.
+// See Reset for how to use zero-sized matrix.
 func NewDense(r, c int, mat []float64) *Dense {
 	if mat != nil && r*c != len(mat) {
 		panic(ErrShape)
@@ -197,8 +196,8 @@ func (m *Dense) SetRow(i int, src []float64) int {
 	return min(len(src), m.mat.Cols)
 }
 
-// RowView returns a slice of float64 reflecting a row that is backed by the
-// matrix data.
+// RowView returns a Vector reflecting a row that is backed by the matrix data.
+//
 // See RowViewer for more information.
 func (m *Dense) RowView(i int) *Vector {
 	if i >= m.mat.Rows || i < 0 {

@@ -383,9 +383,6 @@ func (m *Dense) Dot(b Matrix) float64 {
 }
 
 // Mul takes the matrix product of a and b, placing the result in the receiver.
-// Note that the arguments a or b should be either Matrix or *Dense.
-// Therfore, if a or b is of type Dense, you'll need to pass them by address.
-// For example: m.Mul(a, &b) when a is *Dense and b is Dense.
 //
 // See the Muler interface for more information.
 func (m *Dense) Mul(a, b Matrix) {
