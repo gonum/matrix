@@ -67,8 +67,10 @@ type Dense struct {
 
 // NewDense creates a new matrix of type *Dense with dimensions r and c. If the
 // mat argument is nil, a new data slice is allocated.
+//
 // The data must be arranged in row-major order, i.e. the (i*c + j)-th element
 // in mat is the {i, j}-th element in the matrix.
+//
 // See Reset for how to use zero-sized matrix.
 func NewDense(r, c int, mat []float64) *Dense {
 	if mat != nil && r*c != len(mat) {
@@ -166,7 +168,7 @@ func (m *Dense) SetCol(j int, src []float64) int {
 }
 
 // Row puts the elements in the ith row of the matrix into the slice dst and
-// returns the slice dst.
+// returns it.
 //
 // See the Vectorer interface for more information.
 func (m *Dense) Row(dst []float64, i int) []float64 {
@@ -196,7 +198,7 @@ func (m *Dense) SetRow(i int, src []float64) int {
 	return min(len(src), m.mat.Cols)
 }
 
-// RowView returns a Vector reflecting a row that is backed by the matrix data.
+// RowView returns a Vector reflecting row i, backed by the matrix data.
 //
 // See RowViewer for more information.
 func (m *Dense) RowView(i int) *Vector {
@@ -303,7 +305,7 @@ func (m *Dense) Reset() {
 }
 
 // Clone makes a copy of a into the receiver, overwriting the previous value of
-// the receiver.
+// the receiver. The clone operation does not make any restriction on shape.
 //
 // See the Cloner interface for more information.
 func (m *Dense) Clone(a Matrix) {
@@ -339,7 +341,9 @@ func (m *Dense) Clone(a Matrix) {
 	m.mat = mat
 }
 
-// Copy makes a copy of elements of a into the receiver.
+// Copy makes a copy of elements of a into the receiver. It is similar to the
+// built-in copy: it copies as much as the overlap between the two matrices and
+// returns the number of rows and columns it copied.
 //
 // See the Copier interface for more information.
 func (m *Dense) Copy(a Matrix) (r, c int) {

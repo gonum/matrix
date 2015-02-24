@@ -11,7 +11,7 @@ import (
 	"github.com/gonum/blas/blas64"
 )
 
-// Min returns the smallest element of the receiver.
+// Min returns the smallest element value of the receiver.
 func (m *Dense) Min() float64 {
 	min := m.mat.Data[0]
 	for k := 0; k < m.mat.Rows; k++ {
@@ -22,7 +22,7 @@ func (m *Dense) Min() float64 {
 	return min
 }
 
-// Max returns the largest element of the receiver.
+// Max returns the largest element value of the receiver.
 func (m *Dense) Max() float64 {
 	max := m.mat.Data[0]
 	for k := 0; k < m.mat.Rows; k++ {
@@ -804,7 +804,7 @@ func (m *Dense) Scale(f float64, a Matrix) {
 	}
 }
 
-// Apply applies an Applyfunc f to each of the elements of a, placing the
+// Apply applies the function f to each of the elements of a, placing the
 // resulting matrix in the receiver.
 //
 // See the Applyer interface for more information.
