@@ -8,7 +8,10 @@
 
 package mat64
 
-import "github.com/gonum/blas"
+import (
+	"github.com/gonum/blas"
+	"github.com/gonum/blas/blas64"
+)
 
 // At returns the element at row r, column c.
 func (m *Dense) At(r, c int) float64 {
@@ -38,6 +41,24 @@ func (m *Dense) set(r, c int, v float64) {
 		panic(ErrColAccess)
 	}
 	m.mat.Data[r*m.mat.Stride+c] = v
+}
+
+func sliceDense(m blas64.General, i, j int) []float64 {
+	if i < 0 || j < 0 {
+		panic("mat64: negative index")
+	}
+	ri := i / m.Stride
+	rj := j / m.Stride
+	if ri >= m.Rows || rj > m.Rows {
+		panic(ErrRowAccess)
+	}
+	if ri != rj && m.Cols != m.Stride {
+		panic("mat64: slice accross rows")
+	}
+	if i%m.Stride >= m.Cols || j%m.Stride > m.Cols {
+		panic(ErrColAccess)
+	}
+	return m.Data[i:j]
 }
 
 // At returns the element at row r, column c. It panics if c is not zero.

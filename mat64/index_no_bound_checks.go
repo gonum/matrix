@@ -8,7 +8,10 @@
 
 package mat64
 
-import "github.com/gonum/blas"
+import (
+	"github.com/gonum/blas"
+	"github.com/gonum/blas/blas64"
+)
 
 // At returns the element at row r, column c.
 func (m *Dense) At(r, c int) float64 {
@@ -38,6 +41,10 @@ func (m *Dense) Set(r, c int, v float64) {
 
 func (m *Dense) set(r, c int, v float64) {
 	m.mat.Data[r*m.mat.Stride+c] = v
+}
+
+func sliceDense(m blas64.General, i, j int) []float64 {
+	return m.Data[i:j]
 }
 
 // At returns the element at row r, column c. It panics if c is not zero.
