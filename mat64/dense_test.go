@@ -647,6 +647,20 @@ func (s *S) TestMul(c *check.C) {
 		temp.mat.Data = nil
 		c.Check(func() { temp.Mul(a, b) }, check.PanicMatches, "blas: index of c out of range", check.Commentf("Test %d", i))
 	}
+
+	method := func(receiver, a, b Matrix) {
+		rd := receiver.(Muler)
+		rd.Mul(a, b)
+	}
+	denseComparison := func(receiver, a, b *Dense) {
+		receiver.Mul(a, b)
+	}
+
+	legalSizeMul := func(ar, ac, br, bc int) bool {
+		return ac == br
+	}
+
+	testTwoInput(c, "Mul", &Dense{}, method, denseComparison, legalTypesAll, legalSizeMul)
 }
 
 func (s *S) TestMulTrans(c *check.C) {
@@ -1504,7 +1518,7 @@ func denseMulTransBench(b *testing.B, size int, rho float64) {
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		var n Dense
-		n.MulTrans(a, false, d, true)
+		n.Mul(a, d.T())
 		wd = &n
 	}
 }
@@ -1521,7 +1535,7 @@ func denseMulTransSymBench(b *testing.B, size int, rho float64) {
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		var n Dense
-		n.MulTrans(a, false, a, true)
+		n.Mul(a, a.T())
 		wd = &n
 	}
 }
