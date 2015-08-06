@@ -376,8 +376,11 @@ func testTwoInput(c *check.C,
 	types := []Matrix{
 		&Dense{},
 		&SymDense{},
+		NewSymDense(0, nil),
+		&TriDense{},
 		NewTriDense(0, true, nil),
 		NewTriDense(0, false, nil),
+		&Vector{},
 		NewVector(0, nil),
 		strideVec,
 		&basicMatrix{},
@@ -386,6 +389,9 @@ func testTwoInput(c *check.C,
 		&basicTriangular{},
 
 		Transpose{&Dense{}},
+		Transpose{&SymDense{}},         // Check for transpose even on
+		Transpose{NewSymDense(0, nil)}, // types where it makes no sense.
+		Transpose{&TriDense{}},
 		Transpose{NewTriDense(0, true, nil)},
 		TransposeTri{NewTriDense(0, true, nil)},
 		Transpose{NewTriDense(0, false, nil)},
