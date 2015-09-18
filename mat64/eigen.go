@@ -22,8 +22,8 @@ func symmetric(m *Dense) bool {
 }
 
 type EigenFactors struct {
-	V    *Dense
-	d, e []float64
+	Vectors *Dense
+	Values  EigenValues
 }
 
 // Eigen returns the Eigenvalues and eigenvectors of a square real matrix.
@@ -31,10 +31,7 @@ type EigenFactors struct {
 // then a = v*D*v' where the eigenvalue matrix D is diagonal and the
 // eigenvector matrix v is orthogonal.
 //
-// If a is not symmetric, then the eigenvalue matrix D is block diagonal
-// with the real eigenvalues in 1-by-1 blocks and any complex eigenvalues,
-// lambda + i*mu, in 2-by-2 blocks, [lambda, mu; -mu, lambda]. The
-// columns of v represent the eigenvectors in the sense that a*v = v*D,
+// The columns of v represent the eigenvectors in the sense that a*v = v*D,
 // i.e. a.v equals v.D. The matrix v may be badly conditioned, or even
 // singular, so the validity of the equation a = v*D*inverse(v) depends
 // upon the 2-norm condition number of v.
@@ -63,7 +60,12 @@ func Eigen(a *Dense, epsilon float64) EigenFactors {
 		hqr2(d, e, hess, v, epsilon)
 	}
 
-	return EigenFactors{v, d, e}
+	ev := make([]complex128, n)
+	for i := 0; i < n; i++ {
+		ev[i] = complex(d[i], e[i])
+	}
+
+	return EigenFactors{Vectors: v, Values: ev}
 }
 
 // Symmetric Householder reduction to tridiagonal form.
@@ -798,22 +800,23 @@ func hqr2(d, e []float64, hess, v *Dense, epsilon float64) {
 	}
 }
 
-// D returns the block diagonal eigenvalue matrix from the real and imaginary
-// components d and e.
-func (f EigenFactors) D() *Dense {
-	d, e := f.d, f.e
-	var n int
-	if n = len(d); n != len(e) {
-		panic(ErrSquare)
-	}
-	dm := NewDense(n, n, nil)
-	for i := 0; i < n; i++ {
-		dm.set(i, i, d[i])
-		if e[i] > 0 {
-			dm.set(i, i+1, e[i])
-		} else if e[i] < 0 {
-			dm.set(i, i-1, e[i])
+type EigenValues []complex128
+
+// D returns the eigenvalue matrix from the real and imaginary components
+// of the eigenvalues.
+//
+// If the decomposed matrix is not symmetric, then D returns a block diagonal
+// matrix with the real eigenvalues in 1-by-1 blocks and any complex eigenvalues,
+// lambda + i*mu, in 2-by-2 blocks, [lambda, mu; -mu, lambda].
+func (v EigenValues) D() *Dense {
+	d := NewDense(len(v), len(v), nil)
+	for i, c := range v {
+		d.set(i, i, real(c))
+		if imag(c) > 0 {
+			d.set(i, i+1, imag(c))
+		} else if imag(c) < 0 {
+			d.set(i, i-1, imag(c))
 		}
 	}
-	return dm
+	return d
 }
