@@ -17,11 +17,14 @@ type Complex struct {
 	// their dimensions can not be altered by
 	// clients behind our back.
 	r, i mat64.Matrix
+
+	conjsign float64
 }
 
 var (
-	_ Realer = Complex{}
-	_ Imager = Complex{}
+	_ cmat128.Matrix = Complex{}
+	_ Realer         = Complex{}
+	_ Imager         = Complex{}
 )
 
 // NewComplex returns a complex matrix constructed from r and i. At least one of
@@ -38,7 +41,7 @@ func NewComplex(r, i mat64.Matrix) Complex {
 			panic(matrix.ErrShape)
 		}
 	}
-	return Complex{r: r, i: i}
+	return Complex{r: r, i: i, conjsign: 1}
 }
 
 // Dims returns the number of rows and columns in the matrix.
@@ -57,25 +60,49 @@ func (m Complex) At(r, c int) complex128 {
 	if m.r == nil {
 		return complex(0, m.i.At(r, c))
 	}
-	return complex(m.r.At(r, c), m.i.At(r, c))
+	return complex(m.r.At(r, c), m.i.At(r, c)*m.conjsign)
 }
 
 // T performs an implicit transpose.
 func (m Complex) T() cmat128.Matrix {
 	if m.i == nil {
-		return Complex{r: m.r.T()}
+		return Complex{r: m.r.T(), conjsign: m.conjsign}
 	}
 	if m.r == nil {
-		return Complex{i: m.i.T()}
+		return Complex{i: m.i.T(), conjsign: m.conjsign}
 	}
-	return Complex{r: m.r.T(), i: m.i.T()}
+	return Complex{r: m.r.T(), i: m.i.T(), conjsign: m.conjsign}
+}
+
+// H performs an implicit conjugate transpose.
+func (m Complex) H() cmat128.Matrix {
+	if m.i == nil {
+		return Complex{r: m.r.T(), conjsign: -m.conjsign}
+	}
+	if m.r == nil {
+		return Complex{i: m.i.T(), conjsign: -m.conjsign}
+	}
+	return Complex{r: m.r.T(), i: m.i.T(), conjsign: -m.conjsign}
 }
 
 // Real returns the real part of the receiver.
 func (m Complex) Real() mat64.Matrix { return m.r }
 
 // Imag returns the imaginary part of the receiver.
-func (m Complex) Imag() mat64.Matrix { return m.i }
+func (m Complex) Imag() mat64.Matrix {
+	if m.conjsign == -1 {
+		return negated{m.i}
+	}
+	return m.i
+}
+
+// negated is a real matrix that has been negated. It should not be
+// used except to allow correct return of the imaginary part of a
+// conjugate transposed Complex.
+type negated struct{ mat64.Matrix }
+
+func (m negated) At(i, j int) float64 { return -m.At(i, j) }
+func (m negated) T() mat64.Matrix     { return negated{m.Matrix.T()} }
 
 // Realer is a complex matrix that can return its real part.
 type Realer interface {
