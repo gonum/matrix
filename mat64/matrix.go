@@ -393,6 +393,11 @@ func Dot(a, b Matrix) float64 {
 			return sum
 		}
 	}
+	if aV, ok := aU.(*Vector); ok {
+		if bV, ok := bU.(*Vector); ok {
+			return blas64.Dot(aV.n, aV.mat, bV.mat)
+		}
+	}
 	for i := 0; i < r; i++ {
 		for j := 0; j < c; j++ {
 			sum += a.At(i, j) * b.At(i, j)
