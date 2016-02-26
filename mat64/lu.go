@@ -303,8 +303,8 @@ func (v *Vector) SolveLUVec(lu *LU, trans bool, b *Vector) error {
 	vMat := blas64.General{
 		Rows:   n,
 		Cols:   1,
-		Stride: v.mat.Inc,
-		Data:   v.mat.Data,
+		Stride: v.Inc,
+		Data:   v.Data,
 	}
 	t := blas.NoTrans
 	if trans {

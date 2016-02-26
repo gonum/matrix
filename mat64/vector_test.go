@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/gonum/blas/blas64"
 	"github.com/gonum/matrix"
 )
 
@@ -19,22 +18,16 @@ func TestNewVector(t *testing.T) {
 			n:    3,
 			data: []float64{4, 5, 6},
 			vector: &Vector{
-				mat: blas64.Vector{
-					Data: []float64{4, 5, 6},
-					Inc:  1,
-				},
-				n: 3,
+				Data: []float64{4, 5, 6},
+				Inc:  1,
 			},
 		},
 		{
 			n:    3,
 			data: nil,
 			vector: &Vector{
-				mat: blas64.Vector{
-					Data: []float64{0, 0, 0},
-					Inc:  1,
-				},
-				n: 3,
+				Data: []float64{0, 0, 0},
+				Inc:  1,
 			},
 		},
 	} {
@@ -58,25 +51,19 @@ func TestVectorAtSet(t *testing.T) {
 	}{
 		{
 			vector: &Vector{
-				mat: blas64.Vector{
-					Data: []float64{0, 1, 2},
-					Inc:  1,
-				},
-				n: 3,
+				Data: []float64{0, 1, 2},
+				Inc:  1,
 			},
 		},
 		{
 			vector: &Vector{
-				mat: blas64.Vector{
-					Data: []float64{0, 10, 10, 1, 10, 10, 2},
-					Inc:  3,
-				},
-				n: 3,
+				Data: []float64{0, 10, 10, 1, 10, 10, 2},
+				Inc:  3,
 			},
 		},
 	} {
 		v := test.vector
-		n := test.vector.n
+		n := test.vector.Len()
 
 		for _, row := range []int{-1, n} {
 			panicked, message := panics(func() { v.At(row, 0) })
@@ -184,14 +171,14 @@ func TestVectorScale(t *testing.T) {
 	} {
 		var v Vector
 		v.ScaleVec(test.alpha, test.a)
-		if !reflect.DeepEqual(v.RawVector(), test.want.RawVector()) {
-			t.Errorf("test %d: unexpected result for v = alpha * a: got: %v want: %v", i, v.RawVector(), test.want.RawVector())
+		if !reflect.DeepEqual(v, *test.want) {
+			t.Errorf("test %d: unexpected result for v = alpha * a: got: %v want: %v", i, v, test.want)
 		}
 
 		v.CopyVec(test.a)
 		v.ScaleVec(test.alpha, &v)
-		if !reflect.DeepEqual(v.RawVector(), test.want.RawVector()) {
-			t.Errorf("test %d: unexpected result for v = alpha * v: got: %v want: %v", i, v.RawVector(), test.want.RawVector())
+		if !reflect.DeepEqual(v, *test.want) {
+			t.Errorf("test %d: unexpected result for v = alpha * v: got: %v want: %v", i, v, test.want)
 		}
 	}
 
@@ -251,8 +238,8 @@ func TestVectorAdd(t *testing.T) {
 	} {
 		var v Vector
 		v.AddVec(test.a, test.b)
-		if !reflect.DeepEqual(v.RawVector(), test.want.RawVector()) {
-			t.Errorf("unexpected result for test %d: got: %v want: %v", i, v.RawVector(), test.want.RawVector())
+		if !reflect.DeepEqual(v, *test.want) {
+			t.Errorf("unexpected result for test %d: got: %v want: %v", i, v, test.want)
 		}
 	}
 }
@@ -280,8 +267,8 @@ func TestVectorSub(t *testing.T) {
 	} {
 		var v Vector
 		v.SubVec(test.a, test.b)
-		if !reflect.DeepEqual(v.RawVector(), test.want.RawVector()) {
-			t.Errorf("unexpected result for test %d: got: %v want: %v", i, v.RawVector(), test.want.RawVector())
+		if !reflect.DeepEqual(v, *test.want) {
+			t.Errorf("unexpected result for test %d: got: %v want: %v", i, v, test.want)
 		}
 	}
 }
@@ -309,8 +296,8 @@ func TestVectorMulElem(t *testing.T) {
 	} {
 		var v Vector
 		v.MulElemVec(test.a, test.b)
-		if !reflect.DeepEqual(v.RawVector(), test.want.RawVector()) {
-			t.Errorf("unexpected result for test %d: got: %v want: %v", i, v.RawVector(), test.want.RawVector())
+		if !reflect.DeepEqual(v, *test.want) {
+			t.Errorf("unexpected result for test %d: got: %v want: %v", i, v, test.want)
 		}
 	}
 }
@@ -338,8 +325,8 @@ func TestVectorDivElem(t *testing.T) {
 	} {
 		var v Vector
 		v.DivElemVec(test.a, test.b)
-		if !reflect.DeepEqual(v.RawVector(), test.want.RawVector()) {
-			t.Errorf("unexpected result for test %d: got: %v want: %v", i, v.RawVector(), test.want.RawVector())
+		if !reflect.DeepEqual(v, *test.want) {
+			t.Errorf("unexpected result for test %d: got: %v want: %v", i, v, test.want)
 		}
 	}
 }
@@ -454,10 +441,7 @@ func randVector(size, inc int, rho float64, rnd func() float64) *Vector {
 		}
 	}
 	return &Vector{
-		mat: blas64.Vector{
-			Inc:  inc,
-			Data: data,
-		},
-		n: size,
+		Inc:  inc,
+		Data: data,
 	}
 }

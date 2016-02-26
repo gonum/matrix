@@ -20,13 +20,11 @@ var (
 )
 
 // Vector represents a column vector.
-type Vector struct {
-	mat blas64.Vector
-	n   int
-	// A BLAS vector can have a negative increment, but allowing this
-	// in the mat64 type complicates a lot of code, and doesn't gain anything.
-	// Vector must have positive increment in this package.
-}
+type Vector blas64.Vector
+
+// A BLAS vector can have a negative increment, but allowing this
+// in the mat64 type complicates a lot of code, and doesn't gain anything.
+// Vector must have positive increment in this package.
 
 // NewVector creates a new Vector of length n. If len(data) == n, data is used
 // as the backing data slice. If data == nil, a new slice is allocated. If
@@ -39,11 +37,8 @@ func NewVector(n int, data []float64) *Vector {
 		data = make([]float64, n)
 	}
 	return &Vector{
-		mat: blas64.Vector{
-			Inc:  1,
-			Data: data,
-		},
-		n: n,
+		Inc:  1,
+		Data: data,
 	}
 }
 
@@ -52,15 +47,12 @@ func NewVector(n int, data []float64) *Vector {
 // beyond the bounds of the Vector, ViewVec will panic with ErrIndexOutOfRange.
 // The returned Vector retains reference to the underlying vector.
 func (v *Vector) ViewVec(i, n int) *Vector {
-	if i < 0 || n <= 0 || i+n > v.n {
+	if i < 0 || n <= 0 || i+n > v.Len() {
 		panic(matrix.ErrIndexOutOfRange)
 	}
 	return &Vector{
-		n: n,
-		mat: blas64.Vector{
-			Inc:  v.mat.Inc,
-			Data: v.mat.Data[i*v.mat.Inc : (i+n-1)*v.mat.Inc+1],
-		},
+		Inc:  v.Inc,
+		Data: v.Data[i*v.Inc : (i+n-1)*v.Inc+1],
 	}
 }
 
@@ -68,12 +60,12 @@ func (v *Vector) Dims() (r, c int) {
 	if v.isZero() {
 		return 0, 0
 	}
-	return v.n, 1
+	return v.Len(), 1
 }
 
 // Len returns the length of the vector.
 func (v *Vector) Len() int {
-	return v.n
+	return (len(v.Data) + v.Inc - 1) / v.Inc
 }
 
 // T performs an implicit transpose by returning the receiver inside a Transpose.
@@ -88,9 +80,8 @@ func (v *Vector) T() Matrix {
 func (v *Vector) Reset() {
 	// No change of Inc or n to 0 may be
 	// made unless both are set to 0.
-	v.mat.Inc = 0
-	v.n = 0
-	v.mat.Data = v.mat.Data[:0]
+	v.Inc = 0
+	v.Data = v.Data[:0]
 }
 
 // CloneVec makes a copy of a into the receiver, overwriting the previous value
@@ -99,16 +90,10 @@ func (v *Vector) CloneVec(a *Vector) {
 	if v == a {
 		return
 	}
-	v.n = a.n
-	v.mat = blas64.Vector{
-		Inc:  1,
-		Data: use(v.mat.Data, v.n),
-	}
-	blas64.Copy(v.n, a.mat, v.mat)
-}
-
-func (v *Vector) RawVector() blas64.Vector {
-	return v.mat
+	n := len(v.Data)
+	v.Inc = 1
+	v.Data = use(v.Data, n)
+	blas64.Copy(n, blas64.Vector(*a), blas64.Vector(*v))
 }
 
 // CopyVec makes a copy of elements of a into the receiver. It is similar to the
@@ -117,7 +102,7 @@ func (v *Vector) RawVector() blas64.Vector {
 func (v *Vector) CopyVec(a *Vector) int {
 	n := min(v.Len(), a.Len())
 	if v != a {
-		blas64.Copy(n, a.mat, v.mat)
+		blas64.Copy(n, blas64.Vector(*a), blas64.Vector(*v))
 	}
 	return n
 }
@@ -127,19 +112,19 @@ func (v *Vector) ScaleVec(alpha float64, a *Vector) {
 	n := a.Len()
 	if v != a {
 		v.reuseAs(n)
-		if v.mat.Inc == 1 && a.mat.Inc == 1 {
-			asm.DscalUnitaryTo(v.mat.Data, alpha, a.mat.Data)
+		if v.Inc == 1 && a.Inc == 1 {
+			asm.DscalUnitaryTo(v.Data, alpha, a.Data)
 			return
 		}
-		asm.DscalIncTo(v.mat.Data, uintptr(v.mat.Inc),
-			alpha, a.mat.Data, uintptr(n), uintptr(a.mat.Inc))
+		asm.DscalIncTo(v.Data, uintptr(v.Inc),
+			alpha, a.Data, uintptr(n), uintptr(a.Inc))
 		return
 	}
-	if v.mat.Inc == 1 {
-		asm.DscalUnitary(alpha, v.mat.Data)
+	if v.Inc == 1 {
+		asm.DscalUnitary(alpha, v.Data)
 		return
 	}
-	asm.DscalInc(alpha, v.mat.Data, uintptr(n), uintptr(v.mat.Inc))
+	asm.DscalInc(alpha, v.Data, uintptr(n), uintptr(v.Inc))
 }
 
 // AddScaledVec adds the vectors a and alpha*b, placing the result in the receiver.
@@ -166,23 +151,23 @@ func (v *Vector) AddScaledVec(a *Vector, alpha float64, b *Vector) {
 	case alpha == 0: // v <- a
 		v.CopyVec(a)
 	case v == a && v == b: // v <- v + alpha * v = (alpha + 1) * v
-		blas64.Scal(ar, alpha+1, v.mat)
+		blas64.Scal(ar, alpha+1, blas64.Vector(*v))
 	case v == a && v != b: // v <- v + alpha * b
-		if v.mat.Inc == 1 && b.mat.Inc == 1 {
+		if v.Inc == 1 && b.Inc == 1 {
 			// Fast path for a common case.
-			asm.DaxpyUnitaryTo(v.mat.Data, alpha, b.mat.Data, a.mat.Data)
+			asm.DaxpyUnitaryTo(v.Data, alpha, b.Data, a.Data)
 		} else {
-			asm.DaxpyInc(alpha, b.mat.Data, v.mat.Data,
-				uintptr(ar), uintptr(b.mat.Inc), uintptr(v.mat.Inc), 0, 0)
+			asm.DaxpyInc(alpha, b.Data, v.Data,
+				uintptr(ar), uintptr(b.Inc), uintptr(v.Inc), 0, 0)
 		}
 	default: // v <- a + alpha * b or v <- a + alpha * v
-		if v.mat.Inc == 1 && a.mat.Inc == 1 && b.mat.Inc == 1 {
+		if v.Inc == 1 && a.Inc == 1 && b.Inc == 1 {
 			// Fast path for a common case.
-			asm.DaxpyUnitaryTo(v.mat.Data, alpha, b.mat.Data, a.mat.Data)
+			asm.DaxpyUnitaryTo(v.Data, alpha, b.Data, a.Data)
 		} else {
-			asm.DaxpyIncTo(v.mat.Data, uintptr(v.mat.Inc), 0,
-				alpha, b.mat.Data, a.mat.Data,
-				uintptr(ar), uintptr(b.mat.Inc), uintptr(a.mat.Inc), 0, 0)
+			asm.DaxpyIncTo(v.Data, uintptr(v.Inc), 0,
+				alpha, b.Data, a.Data,
+				uintptr(ar), uintptr(b.Inc), uintptr(a.Inc), 0, 0)
 		}
 	}
 }
@@ -198,14 +183,14 @@ func (v *Vector) AddVec(a, b *Vector) {
 
 	v.reuseAs(ar)
 
-	if v.mat.Inc == 1 && a.mat.Inc == 1 && b.mat.Inc == 1 {
+	if v.Inc == 1 && a.Inc == 1 && b.Inc == 1 {
 		// Fast path for a common case.
-		asm.DaxpyUnitaryTo(v.mat.Data, 1, b.mat.Data, a.mat.Data)
+		asm.DaxpyUnitaryTo(v.Data, 1, b.Data, a.Data)
 		return
 	}
-	asm.DaxpyIncTo(v.mat.Data, uintptr(v.mat.Inc), 0,
-		1, b.mat.Data, a.mat.Data,
-		uintptr(ar), uintptr(b.mat.Inc), uintptr(a.mat.Inc), 0, 0)
+	asm.DaxpyIncTo(v.Data, uintptr(v.Inc), 0,
+		1, b.Data, a.Data,
+		uintptr(ar), uintptr(b.Inc), uintptr(a.Inc), 0, 0)
 }
 
 // SubVec subtracts the vector b from a, placing the result in the receiver.
@@ -219,14 +204,14 @@ func (v *Vector) SubVec(a, b *Vector) {
 
 	v.reuseAs(ar)
 
-	if v.mat.Inc == 1 && a.mat.Inc == 1 && b.mat.Inc == 1 {
+	if v.Inc == 1 && a.Inc == 1 && b.Inc == 1 {
 		// Fast path for a common case.
-		asm.DaxpyUnitaryTo(v.mat.Data, -1, b.mat.Data, a.mat.Data)
+		asm.DaxpyUnitaryTo(v.Data, -1, b.Data, a.Data)
 		return
 	}
-	asm.DaxpyIncTo(v.mat.Data, uintptr(v.mat.Inc), 0,
-		-1, b.mat.Data, a.mat.Data,
-		uintptr(ar), uintptr(b.mat.Inc), uintptr(a.mat.Inc), 0, 0)
+	asm.DaxpyIncTo(v.Data, uintptr(v.Inc), 0,
+		-1, b.Data, a.Data,
+		uintptr(ar), uintptr(b.Inc), uintptr(a.Inc), 0, 0)
 }
 
 // MulElemVec performs element-wise multiplication of a and b, placing the result
@@ -241,9 +226,8 @@ func (v *Vector) MulElemVec(a, b *Vector) {
 
 	v.reuseAs(ar)
 
-	amat, bmat := a.RawVector(), b.RawVector()
-	for i := 0; i < v.n; i++ {
-		v.mat.Data[i*v.mat.Inc] = amat.Data[i*amat.Inc] * bmat.Data[i*bmat.Inc]
+	for i := 0; i < v.Len(); i++ {
+		v.Data[i*v.Inc] = a.Data[i*b.Inc] * b.Data[i*b.Inc]
 	}
 }
 
@@ -259,9 +243,8 @@ func (v *Vector) DivElemVec(a, b *Vector) {
 
 	v.reuseAs(ar)
 
-	amat, bmat := a.RawVector(), b.RawVector()
-	for i := 0; i < v.n; i++ {
-		v.mat.Data[i*v.mat.Inc] = amat.Data[i*amat.Inc] / bmat.Data[i*bmat.Inc]
+	for i := 0; i < v.Len(); i++ {
+		v.Data[i*v.Inc] = a.Data[i*a.Inc] / b.Data[i*a.Inc]
 	}
 }
 
@@ -291,7 +274,7 @@ func (v *Vector) MulVec(a Matrix, b *Vector) {
 			// {1,1} x {1,n}
 			av := a.At(0, 0)
 			for i := 0; i < b.Len(); i++ {
-				v.mat.Data[i*v.mat.Inc] = av * b.mat.Data[i*b.mat.Inc]
+				v.Data[i*v.Inc] = av * b.Data[i*b.Inc]
 			}
 			return
 		}
@@ -299,7 +282,7 @@ func (v *Vector) MulVec(a Matrix, b *Vector) {
 			// {1,n} x {1,1}
 			bv := b.At(0, 0)
 			for i := 0; i < a.Len(); i++ {
-				v.mat.Data[i*v.mat.Inc] = bv * a.mat.Data[i*a.mat.Inc]
+				v.Data[i*v.Inc] = bv * a.Data[i*a.Inc]
 			}
 			return
 		}
@@ -312,7 +295,7 @@ func (v *Vector) MulVec(a Matrix, b *Vector) {
 		return
 	case RawSymmetricer:
 		amat := a.RawSymmetric()
-		blas64.Symv(1, amat, b.mat, 0, v.mat)
+		blas64.Symv(1, amat, blas64.Vector(*b), 0, blas64.Vector(*v))
 	case RawTriangular:
 		v.CopyVec(b)
 		amat := a.RawTriangular()
@@ -320,14 +303,14 @@ func (v *Vector) MulVec(a Matrix, b *Vector) {
 		if trans {
 			ta = blas.Trans
 		}
-		blas64.Trmv(ta, amat, v.mat)
+		blas64.Trmv(ta, amat, blas64.Vector(*v))
 	case RawMatrixer:
 		amat := a.RawMatrix()
 		t := blas.NoTrans
 		if trans {
 			t = blas.Trans
 		}
-		blas64.Gemv(t, 1, amat, b.mat, 0, v.mat)
+		blas64.Gemv(t, 1, amat, blas64.Vector(*b), 0, blas64.Vector(*v))
 	default:
 		if trans {
 			col := make([]float64, ar)
@@ -337,9 +320,9 @@ func (v *Vector) MulVec(a Matrix, b *Vector) {
 				}
 				var f float64
 				for i, e := range col {
-					f += e * b.mat.Data[i*b.mat.Inc]
+					f += e * b.Data[i*b.Inc]
 				}
-				v.mat.Data[c*v.mat.Inc] = f
+				v.Data[c*v.Inc] = f
 			}
 		} else {
 			row := make([]float64, ac)
@@ -349,9 +332,9 @@ func (v *Vector) MulVec(a Matrix, b *Vector) {
 				}
 				var f float64
 				for i, e := range row {
-					f += e * b.mat.Data[i*b.mat.Inc]
+					f += e * b.Data[i*b.Inc]
 				}
-				v.mat.Data[r*v.mat.Inc] = f
+				v.Data[r*v.Inc] = f
 			}
 		}
 	}
@@ -361,14 +344,11 @@ func (v *Vector) MulVec(a Matrix, b *Vector) {
 // or checks that a non-empty matrix is r×1.
 func (v *Vector) reuseAs(r int) {
 	if v.isZero() {
-		v.mat = blas64.Vector{
-			Inc:  1,
-			Data: use(v.mat.Data, r),
-		}
-		v.n = r
+		v.Inc = 1
+		v.Data = use(v.Data, r)
 		return
 	}
-	if r != v.n {
+	if r != v.Len() {
 		panic(matrix.ErrShape)
 	}
 }
@@ -376,7 +356,7 @@ func (v *Vector) reuseAs(r int) {
 func (v *Vector) isZero() bool {
 	// It must be the case that v.Dims() returns
 	// zeros in this case. See comment in Reset().
-	return v.mat.Inc == 0
+	return v.Inc == 0
 }
 
 func (v *Vector) isolatedWorkspace(a *Vector) (n *Vector, restore func()) {

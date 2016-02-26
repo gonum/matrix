@@ -266,15 +266,12 @@ func makeRandOf(a Matrix, m, n int) Matrix {
 		}
 		length := m
 		inc := 1
-		if t.mat.Inc != 0 {
-			inc = t.mat.Inc
+		if t.Inc != 0 {
+			inc = t.Inc
 		}
 		mat := &Vector{
-			mat: blas64.Vector{
-				Inc:  inc,
-				Data: make([]float64, inc*(length-1)+1),
-			},
-			n: length,
+			Inc:  inc,
+			Data: make([]float64, inc*(length-1)+1),
 		}
 		for i := 0; i < length; i++ {
 			mat.SetVec(i, rand.NormFloat64())
@@ -364,13 +361,10 @@ func makeCopyOf(a Matrix) Matrix {
 		return returnAs(m, t)
 	case *Vector:
 		m := &Vector{
-			mat: blas64.Vector{
-				Inc:  t.mat.Inc,
-				Data: make([]float64, t.mat.Inc*(t.n-1)+1),
-			},
-			n: t.n,
+			Inc:  t.Inc,
+			Data: make([]float64, t.Inc*(t.Len()-1)+1),
 		}
-		copy(m.mat.Data, t.mat.Data)
+		copy(m.Data, t.Data)
 		return m
 	}
 }
@@ -478,7 +472,7 @@ func underlyingData(a Matrix) []float64 {
 	case *SymDense:
 		return t.mat.Data
 	case *Vector:
-		return t.mat.Data
+		return t.Data
 	}
 }
 
@@ -489,7 +483,7 @@ var testMatrices = []Matrix{
 	NewTriDense(0, true, nil),
 	NewTriDense(0, false, nil),
 	NewVector(0, nil),
-	&Vector{mat: blas64.Vector{Inc: 10}},
+	&Vector{Inc: 10},
 	&basicMatrix{},
 	&basicSymmetric{},
 	&basicTriangular{mat: blas64.Triangular{Uplo: blas.Upper}},
@@ -501,7 +495,7 @@ var testMatrices = []Matrix{
 	Transpose{NewTriDense(0, false, nil)},
 	TransposeTri{NewTriDense(0, false, nil)},
 	Transpose{NewVector(0, nil)},
-	Transpose{&Vector{mat: blas64.Vector{Inc: 10}}},
+	Transpose{&Vector{Inc: 10}},
 	Transpose{&basicMatrix{}},
 	Transpose{&basicSymmetric{}},
 	Transpose{&basicTriangular{mat: blas64.Triangular{Uplo: blas.Upper}}},

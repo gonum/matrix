@@ -149,22 +149,21 @@ func (t *TriDense) checkOverlap(a blas64.Triangular) bool {
 }
 
 func (v *Vector) checkOverlap(a blas64.Vector) bool {
-	mat := v.mat
-	if cap(mat.Data) == 0 || cap(a.Data) == 0 {
+	if cap(v.Data) == 0 || cap(a.Data) == 0 {
 		return false
 	}
 
-	off := offset(mat.Data[:1], a.Data[:1])
+	off := offset(v.Data[:1], a.Data[:1])
 
 	if off == 0 {
 		// At least one element overlaps.
-		if mat.Inc == a.Inc && len(mat.Data) == len(a.Data) {
+		if v.Inc == a.Inc && len(v.Data) == len(a.Data) {
 			panic(regionIdentity)
 		}
 		panic(regionOverlap)
 	}
 
-	if off > 0 && len(mat.Data) <= off {
+	if off > 0 && len(v.Data) <= off {
 		// We know v is completely before a.
 		return false
 	}
@@ -173,12 +172,12 @@ func (v *Vector) checkOverlap(a blas64.Vector) bool {
 		return false
 	}
 
-	if mat.Inc != a.Inc {
+	if v.Inc != a.Inc {
 		// Too hard, so assume the worst.
 		panic(mismatchedStrides)
 	}
 
-	if mat.Inc == 1 || off&mat.Inc == 0 {
+	if v.Inc == 1 || off&v.Inc == 0 {
 		panic(regionOverlap)
 	}
 	return false

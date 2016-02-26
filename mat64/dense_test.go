@@ -5,6 +5,7 @@
 package mat64
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"reflect"
@@ -319,6 +320,7 @@ func TestRowColView(t *testing.T) {
 		for j := 0; j < cols; j++ {
 			vc := m.ColView(j)
 			if vc.Len() != rows {
+				fmt.Println(*vc)
 				t.Errorf("unexpected number of rows: got: %d want: %d", vc.Len(), rows)
 			}
 			for i := 0; i < rows; i++ {

@@ -209,7 +209,7 @@ func (s *SymDense) SymRankOne(a Symmetric, alpha float64, x *Vector) {
 	if s != a {
 		s.CopySym(a)
 	}
-	blas64.Syr(alpha, x.mat, s.mat)
+	blas64.Syr(alpha, blas64.Vector(*x), s.mat)
 }
 
 // SymRankK performs a symmetric rank-k update to the matrix a and stores the
@@ -296,7 +296,7 @@ func (s *SymDense) RankTwo(a Symmetric, alpha float64, x, y *Vector) {
 	if s != a {
 		w.CopySym(a)
 	}
-	blas64.Syr2(alpha, x.mat, y.mat, w.mat)
+	blas64.Syr2(alpha, blas64.Vector(*x), blas64.Vector(*y), w.mat)
 	*s = w
 	return
 }
