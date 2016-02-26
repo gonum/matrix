@@ -168,11 +168,8 @@ func (m *Dense) ColView(j int) *Vector {
 		panic(matrix.ErrColAccess)
 	}
 	return &Vector{
-		mat: blas64.Vector{
-			Inc:  m.mat.Stride,
-			Data: m.mat.Data[j : (m.mat.Rows-1)*m.mat.Stride+j+1],
-		},
-		n: m.mat.Rows,
+		Inc:  m.mat.Stride,
+		Data: m.mat.Data[j : (m.mat.Rows-1)*m.mat.Stride+j+1],
 	}
 }
 
@@ -214,11 +211,8 @@ func (m *Dense) RowView(i int) *Vector {
 		panic(matrix.ErrRowAccess)
 	}
 	return &Vector{
-		mat: blas64.Vector{
-			Inc:  1,
-			Data: m.mat.Data[i*m.mat.Stride : i*m.mat.Stride+m.mat.Cols],
-		},
-		n: m.mat.Cols,
+		Inc:  1,
+		Data: m.mat.Data[i*m.mat.Stride : i*m.mat.Stride+m.mat.Cols],
 	}
 }
 

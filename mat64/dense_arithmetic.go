@@ -342,15 +342,14 @@ func (m *Dense) Mul(a, b Matrix) {
 			return
 		}
 		if bU, ok := bU.(*Vector); ok {
-			bvec := bU.RawVector()
 			if bTrans {
 				// {ar,1} x {1,bc}, which is not a vector.
 				// Instead, construct B as a General.
 				bmat := blas64.General{
 					Rows:   bc,
 					Cols:   1,
-					Stride: bvec.Inc,
-					Data:   bvec.Data,
+					Stride: bU.Inc,
+					Data:   bU.Data,
 				}
 				blas64.Gemm(aT, bT, 1, amat, bmat, 0, m.mat)
 				return
@@ -359,7 +358,7 @@ func (m *Dense) Mul(a, b Matrix) {
 				Inc:  m.mat.Stride,
 				Data: m.mat.Data,
 			}
-			blas64.Gemv(aT, 1, amat, bvec, 0, cvec)
+			blas64.Gemv(aT, 1, amat, blas64.Vector(*bU), 0, cvec)
 			return
 		}
 	}
@@ -402,7 +401,6 @@ func (m *Dense) Mul(a, b Matrix) {
 			return
 		}
 		if aU, ok := aU.(*Vector); ok {
-			avec := aU.RawVector()
 			if aTrans {
 				// {1,ac} x {ac, bc}
 				// Transpose B so that the vector is on the right.
@@ -414,7 +412,7 @@ func (m *Dense) Mul(a, b Matrix) {
 				if bTrans {
 					bT = blas.NoTrans
 				}
-				blas64.Gemv(bT, 1, bmat, avec, 0, cvec)
+				blas64.Gemv(bT, 1, bmat, blas64.Vector(*aU), 0, cvec)
 				return
 			}
 			// {ar,1} x {1,bc} which is not a vector result.
@@ -422,8 +420,8 @@ func (m *Dense) Mul(a, b Matrix) {
 			amat := blas64.General{
 				Rows:   ar,
 				Cols:   1,
-				Stride: avec.Inc,
-				Data:   avec.Data,
+				Stride: aU.Inc,
+				Data:   aU.Data,
 			}
 			blas64.Gemm(aT, bT, 1, amat, bmat, 0, m.mat)
 			return
@@ -685,7 +683,7 @@ func (m *Dense) RankOne(a Matrix, alpha float64, x, y *Vector) {
 	if m != a {
 		w.Copy(a)
 	}
-	blas64.Ger(alpha, x.mat, y.mat, w.mat)
+	blas64.Ger(alpha, blas64.Vector(*x), blas64.Vector(*y), w.mat)
 	*m = w
 }
 
@@ -723,5 +721,5 @@ func (m *Dense) Outer(alpha float64, x, y *Vector) {
 		}
 	}
 
-	blas64.Ger(alpha, x.mat, y.mat, m.mat)
+	blas64.Ger(alpha, blas64.Vector(*x), blas64.Vector(*y), m.mat)
 }

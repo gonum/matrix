@@ -43,7 +43,7 @@ func (m *Dense) set(i, j int, v float64) {
 // At returns the element at row i.
 // It panics if i is out of bounds or if j is not zero.
 func (v *Vector) At(i, j int) float64 {
-	if i < 0 || i >= v.n {
+	if i < 0 || i >= v.Len() {
 		panic(matrix.ErrRowAccess)
 	}
 	if j != 0 {
@@ -53,20 +53,20 @@ func (v *Vector) At(i, j int) float64 {
 }
 
 func (v *Vector) at(i int) float64 {
-	return v.mat.Data[i*v.mat.Inc]
+	return v.Data[i*v.Inc]
 }
 
 // SetVec sets the element at row i to the value val.
 // It panics if i is out of bounds.
 func (v *Vector) SetVec(i int, val float64) {
-	if i < 0 || i >= v.n {
+	if i < 0 || i >= v.Len() {
 		panic(matrix.ErrVectorAccess)
 	}
 	v.setVec(i, val)
 }
 
 func (v *Vector) setVec(i int, val float64) {
-	v.mat.Data[i*v.mat.Inc] = val
+	v.Data[i*v.Inc] = val
 }
 
 // At returns the element at row i and column j.

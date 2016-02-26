@@ -67,10 +67,10 @@ func init() {
 			}}
 		}
 		poolVec[i].New = func() interface{} {
-			return &Vector{mat: blas64.Vector{
+			return &Vector{
 				Inc:  1,
 				Data: make([]float64, l),
-			}}
+			}
 		}
 	}
 }
@@ -128,11 +128,10 @@ func putWorkspaceSym(s *SymDense) {
 func getWorkspaceVec(n int, clear bool) *Vector {
 	l := uint64(n)
 	v := poolVec[bits(l)].Get().(*Vector)
-	v.mat.Data = v.mat.Data[:l]
+	v.Data = v.Data[:l]
 	if clear {
-		zero(v.mat.Data)
+		zero(v.Data)
 	}
-	v.n = n
 	return v
 }
 
@@ -140,5 +139,5 @@ func getWorkspaceVec(n int, clear bool) *Vector {
 // workspace pool. putWorkspaceVec must not be called with a matrix
 // where references to the underlying data slice has been kept.
 func putWorkspaceVec(v *Vector) {
-	poolVec[bits(uint64(cap(v.mat.Data)))].Put(v)
+	poolVec[bits(uint64(cap(v.Data)))].Put(v)
 }

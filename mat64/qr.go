@@ -216,14 +216,15 @@ func (v *Vector) SolveQRVec(qr *QR, trans bool, b *Vector) error {
 
 // vecAsDense returns the vector as a Dense matrix with the same underlying data.
 func vecAsDense(v *Vector) *Dense {
+	r := v.Len()
 	return &Dense{
 		mat: blas64.General{
-			Rows:   v.n,
+			Rows:   r,
 			Cols:   1,
-			Stride: v.mat.Inc,
-			Data:   v.mat.Data,
+			Stride: v.Inc,
+			Data:   v.Data,
 		},
-		capRows: v.n,
+		capRows: r,
 		capCols: 1,
 	}
 }

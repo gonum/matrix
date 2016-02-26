@@ -121,8 +121,8 @@ func (v *Vector) SolveCholeskyVec(chol *Cholesky, b *Vector) error {
 	if v != b {
 		v.CopyVec(b)
 	}
-	blas64.Trsv(blas.Trans, chol.chol.mat, v.mat)
-	blas64.Trsv(blas.NoTrans, chol.chol.mat, v.mat)
+	blas64.Trsv(blas.Trans, chol.chol.mat, blas64.Vector(*v))
+	blas64.Trsv(blas.NoTrans, chol.chol.mat, blas64.Vector(*v))
 	if chol.cond > matrix.ConditionTolerance {
 		return matrix.Condition(chol.cond)
 	}

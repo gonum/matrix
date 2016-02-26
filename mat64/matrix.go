@@ -438,8 +438,8 @@ func Equal(a, b Matrix) bool {
 		if rb, ok := bU.(*Vector); ok {
 			// If the raw vectors are the same length they must either both be
 			// transposed or both not transposed (or have length 1).
-			for i := 0; i < ra.n; i++ {
-				if ra.mat.Data[i*ra.mat.Inc] != rb.mat.Data[i*rb.mat.Inc] {
+			for i := 0; i < ra.Len(); i++ {
+				if ra.Data[i*ra.Inc] != rb.Data[i*rb.Inc] {
 					return false
 				}
 			}
@@ -510,8 +510,8 @@ func EqualApprox(a, b Matrix, epsilon float64) bool {
 		if rb, ok := bU.(*Vector); ok {
 			// If the raw vectors are the same length they must either both be
 			// transposed or both not transposed (or have length 1).
-			for i := 0; i < ra.n; i++ {
-				if !floats.EqualWithinAbsOrRel(ra.mat.Data[i*ra.mat.Inc], rb.mat.Data[i*rb.mat.Inc], epsilon, epsilon) {
+			for i := 0; i < ra.Len(); i++ {
+				if !floats.EqualWithinAbsOrRel(ra.Data[i*ra.Inc], rb.Data[i*rb.Inc], epsilon, epsilon) {
 					return false
 				}
 			}
@@ -727,23 +727,22 @@ func Norm(a Matrix, norm float64) float64 {
 		}
 		return lapack64.Lansy(n, rm, work)
 	case *Vector:
-		rv := rma.RawVector()
 		switch norm {
 		default:
 			panic("unreachable")
 		case 1:
 			if aTrans {
-				imax := blas64.Iamax(rma.n, rv)
+				imax := blas64.Iamax(rma.Len(), blas64.Vector(*rma))
 				return math.Abs(rma.At(imax, 0))
 			}
-			return blas64.Asum(rma.n, rv)
+			return blas64.Asum(rma.Len(), blas64.Vector(*rma))
 		case 2:
-			return blas64.Nrm2(rma.n, rv)
+			return blas64.Nrm2(rma.Len(), blas64.Vector(*rma))
 		case math.Inf(1):
 			if aTrans {
-				return blas64.Asum(rma.n, rv)
+				return blas64.Asum(rma.Len(), blas64.Vector(*rma))
 			}
-			imax := blas64.Iamax(rma.n, rv)
+			imax := blas64.Iamax(rma.Len(), blas64.Vector(*rma))
 			return math.Abs(rma.At(imax, 0))
 		}
 	}
