@@ -7,6 +7,8 @@ package mat64
 import (
 	"bytes"
 	"encoding/binary"
+	"strconv"
+	"strings"
 
 	"github.com/gonum/blas"
 	"github.com/gonum/blas/blas64"
@@ -522,4 +524,65 @@ func (m *Dense) UnmarshalBinary(data []byte) error {
 	}
 
 	return err
+}
+
+// MarshalText encodes the receiver into UTF-8-encoded text and returns the result.
+//
+// Dense is converted into CSV text format.
+func (m Dense) MarshalText() ([]byte, error) {
+	buf := bytes.NewBufferString("")
+
+	for i := 0; i < m.mat.Rows; i++ {
+		if i > 0 {
+			buf.WriteString("\n")
+		}
+
+		for j, v := range m.rowView(i) {
+			if j > 0 {
+				buf.WriteString(",")
+			}
+			floatString := strconv.FormatFloat(v, 'f', -1, 64)
+			buf.WriteString(floatString)
+		}
+	}
+	return buf.Bytes(), nil
+}
+
+// UnmarshalText decodes the text form into the receiver.
+// It panics if the receiver is a non-zero Dense matrix.
+//
+// See MarshalText for the text layout.
+func (m *Dense) UnmarshalText(data []byte) (err error) {
+	if !m.isZero() {
+		panic("mat64: unmarshal into non-zero matrix")
+	}
+
+	stringData := string(data)
+	if len(stringData) <= 0 {
+		return nil
+	}
+
+	rows := strings.Split(stringData, "\n")
+	cols := len(strings.Split(rows[0], ","))
+
+	m.mat.Rows = len(rows)
+	m.mat.Cols = cols
+	m.mat.Stride = cols
+	m.capRows = len(rows)
+	m.capCols = len(rows)
+	m.mat.Data = use(m.mat.Data, m.mat.Rows*m.mat.Cols)
+
+	i := 0
+	for _, row := range rows {
+		vals := strings.Split(row, ",")
+		for _, col := range vals {
+			m.mat.Data[i], err = strconv.ParseFloat(col, 64)
+			if err != nil {
+				return err
+			}
+			i++
+		}
+	}
+
+	return nil
 }
