@@ -39,3 +39,31 @@ func TestDenseRW(t *testing.T) {
 		}
 	}
 }
+
+func TestDenseTextRW(t *testing.T) {
+	for i, test := range []*Dense{
+		NewDense(0, 0, []float64{}),
+		NewDense(2, 2, []float64{1, 2, 3, 4}),
+		NewDense(2, 3, []float64{1.1, 2.2, 3.3, 4.4, 5.5, 6.6}),
+		NewDense(3, 2, []float64{1, 2, 3, 4, 5, 6}),
+		NewDense(3, 3, []float64{1, 2, 3, 4, 5, 6, 7, 8, 9}),
+		NewDense(3, 3, []float64{1, 2, 3, 4, 5, 6, 7, 8, 9}).View(0, 0, 2, 2).(*Dense),
+		NewDense(3, 3, []float64{1, 2, 3, 4, 5, 6, 7, 8, 9}).View(1, 1, 2, 2).(*Dense),
+		NewDense(3, 3, []float64{1, 2, 3, 4, 5, 6, 7, 8, 9}).View(0, 1, 3, 2).(*Dense),
+	} {
+		buf, err := test.MarshalText()
+		if err != nil {
+			t.Errorf("error encoding test #%d: %v\n", i, err)
+		}
+
+		var got Dense
+		err = got.UnmarshalText(buf)
+		if err != nil {
+			t.Errorf("error decoding test #%d: %v\n", i, err)
+		}
+
+		if !Equal(&got, test) {
+			t.Errorf("r/w test #%d failed\nwant=%#v\n got=%#v\n", i, test, &got)
+		}
+	}
+}
