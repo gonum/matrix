@@ -455,3 +455,47 @@ func (v *Vector) asGeneral() blas64.General {
 		Data:   v.mat.Data,
 	}
 }
+
+type RowVector Vector
+
+func (v *RowVector) Dims() (r, c int) {
+	if v.mat.Inc == 0 {
+		return 0, 0
+	}
+	return 1, v.n
+}
+
+// T performs an implicit transpose by returning the receiver inside a Transpose.
+func (v *RowVector) T() Matrix {
+	return Transpose{v}
+}
+
+func (v *RowVector) RawVector() blas64.Vector {
+	return v.mat
+}
+
+func (v *RowVector) Vector() *Vector {
+	return (*Vector)(v)
+}
+
+type ColVector Vector
+
+func (v *ColVector) Dims() (r, c int) {
+	if v.mat.Inc == 0 {
+		return 0, 0
+	}
+	return v.n, 1
+}
+
+// T performs an implicit transpose by returning the receiver inside a Transpose.
+func (v *ColVector) T() Matrix {
+	return Transpose{v}
+}
+
+func (v *ColVector) RawVector() blas64.Vector {
+	return v.mat
+}
+
+func (v *ColVector) Vector() *Vector {
+	return (*Vector)(v)
+}

@@ -304,7 +304,7 @@ func TestRowColView(t *testing.T) {
 		}
 
 		for i := 0; i < rows; i++ {
-			vr := m.RowView(i)
+			vr := m.RowView(i).Vector()
 			if vr.Len() != cols {
 				t.Errorf("unexpected number of columns: got: %d want: %d", vr.Len(), cols)
 			}
@@ -316,7 +316,7 @@ func TestRowColView(t *testing.T) {
 			}
 		}
 		for j := 0; j < cols; j++ {
-			vc := m.ColView(j)
+			vc := m.ColView(j).Vector()
 			if vc.Len() != rows {
 				t.Errorf("unexpected number of rows: got: %d want: %d", vc.Len(), rows)
 			}
@@ -329,7 +329,7 @@ func TestRowColView(t *testing.T) {
 		}
 		m = m.View(1, 1, rows-2, cols-2).(*Dense)
 		for i := 1; i < rows-1; i++ {
-			vr := m.RowView(i - 1)
+			vr := m.RowView(i - 1).Vector()
 			if vr.Len() != cols-2 {
 				t.Errorf("unexpected number of columns: got: %d want: %d", vr.Len(), cols-2)
 			}
@@ -341,7 +341,7 @@ func TestRowColView(t *testing.T) {
 			}
 		}
 		for j := 1; j < cols-1; j++ {
-			vc := m.ColView(j - 1)
+			vc := m.ColView(j - 1).Vector()
 			if vc.Len() != rows-2 {
 				t.Errorf("unexpected number of rows: got: %d want: %d", vc.Len(), rows-2)
 			}
@@ -1209,25 +1209,19 @@ func TestCopyVectorAlias(t *testing.T) {
 						4, 5, 6,
 						7, 8, 9,
 					})
-					var src *Vector
-					var want *Dense
+					var src Matrix
+					var got, want *Dense
 					if horiz {
 						src = a.RowView(si)
 						want = DenseCopyOf(a.View(si, 0, 1, 2))
+						got = a.View(di, do, 1, 2).(*Dense)
 					} else {
 						src = a.ColView(si)
 						want = DenseCopyOf(a.View(0, si, 2, 1))
-					}
-
-					var got *Dense
-					if horiz {
-						got = a.View(di, do, 1, 2).(*Dense)
-						got.Copy(src.T())
-					} else {
 						got = a.View(do, di, 2, 1).(*Dense)
-						got.Copy(src)
 					}
 
+					got.Copy(src)
 					if !Equal(got, want) {
 						t.Errorf("unexpected aliased copy result with offsets dst(%d) src(%d):\ngot:\n%v\nwant:\n%v",
 							di, si, Formatted(want), Formatted(got),

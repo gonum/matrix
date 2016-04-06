@@ -158,17 +158,17 @@ func TestVectorScale(t *testing.T) {
 			want:  NewVector(3, []float64{0, -2, -4}),
 		},
 		{
-			a:     NewDense(3, 1, []float64{0, 1, 2}).ColView(0),
+			a:     NewDense(3, 1, []float64{0, 1, 2}).ColView(0).Vector(),
 			alpha: 0,
 			want:  NewVector(3, []float64{0, 0, 0}),
 		},
 		{
-			a:     NewDense(3, 1, []float64{0, 1, 2}).ColView(0),
+			a:     NewDense(3, 1, []float64{0, 1, 2}).ColView(0).Vector(),
 			alpha: 1,
 			want:  NewVector(3, []float64{0, 1, 2}),
 		},
 		{
-			a:     NewDense(3, 1, []float64{0, 1, 2}).ColView(0),
+			a:     NewDense(3, 1, []float64{0, 1, 2}).ColView(0).Vector(),
 			alpha: -2,
 			want:  NewVector(3, []float64{0, -2, -4}),
 		},
@@ -177,7 +177,7 @@ func TestVectorScale(t *testing.T) {
 				0, 1, 2,
 				3, 4, 5,
 				6, 7, 8,
-			}).ColView(1),
+			}).ColView(1).Vector(),
 			alpha: -2,
 			want:  NewVector(3, []float64{-2, -8, -14}),
 		},
@@ -240,12 +240,12 @@ func TestVectorAdd(t *testing.T) {
 		},
 		{
 			a:    NewVector(3, []float64{0, 1, 2}),
-			b:    NewDense(3, 1, []float64{0, 2, 3}).ColView(0),
+			b:    NewDense(3, 1, []float64{0, 2, 3}).ColView(0).Vector(),
 			want: NewVector(3, []float64{0, 3, 5}),
 		},
 		{
-			a:    NewDense(3, 1, []float64{0, 1, 2}).ColView(0),
-			b:    NewDense(3, 1, []float64{0, 2, 3}).ColView(0),
+			a:    NewDense(3, 1, []float64{0, 1, 2}).ColView(0).Vector(),
+			b:    NewDense(3, 1, []float64{0, 2, 3}).ColView(0).Vector(),
 			want: NewVector(3, []float64{0, 3, 5}),
 		},
 	} {
@@ -269,12 +269,12 @@ func TestVectorSub(t *testing.T) {
 		},
 		{
 			a:    NewVector(3, []float64{0, 1, 2}),
-			b:    NewDense(3, 1, []float64{0, 0.5, 1}).ColView(0),
+			b:    NewDense(3, 1, []float64{0, 0.5, 1}).ColView(0).Vector(),
 			want: NewVector(3, []float64{0, 0.5, 1}),
 		},
 		{
-			a:    NewDense(3, 1, []float64{0, 1, 2}).ColView(0),
-			b:    NewDense(3, 1, []float64{0, 0.5, 1}).ColView(0),
+			a:    NewDense(3, 1, []float64{0, 1, 2}).ColView(0).Vector(),
+			b:    NewDense(3, 1, []float64{0, 0.5, 1}).ColView(0).Vector(),
 			want: NewVector(3, []float64{0, 0.5, 1}),
 		},
 	} {
@@ -298,12 +298,12 @@ func TestVectorMulElem(t *testing.T) {
 		},
 		{
 			a:    NewVector(3, []float64{0, 1, 2}),
-			b:    NewDense(3, 1, []float64{0, 2, 3}).ColView(0),
+			b:    NewDense(3, 1, []float64{0, 2, 3}).ColView(0).Vector(),
 			want: NewVector(3, []float64{0, 2, 6}),
 		},
 		{
-			a:    NewDense(3, 1, []float64{0, 1, 2}).ColView(0),
-			b:    NewDense(3, 1, []float64{0, 2, 3}).ColView(0),
+			a:    NewDense(3, 1, []float64{0, 1, 2}).ColView(0).Vector(),
+			b:    NewDense(3, 1, []float64{0, 2, 3}).ColView(0).Vector(),
 			want: NewVector(3, []float64{0, 2, 6}),
 		},
 	} {
@@ -327,12 +327,12 @@ func TestVectorDivElem(t *testing.T) {
 		},
 		{
 			a:    NewVector(3, []float64{0.5, 1, 2}),
-			b:    NewDense(3, 1, []float64{0.5, 0.5, 1}).ColView(0),
+			b:    NewDense(3, 1, []float64{0.5, 0.5, 1}).ColView(0).Vector(),
 			want: NewVector(3, []float64{1, 2, 2}),
 		},
 		{
-			a:    NewDense(3, 1, []float64{0.5, 1, 2}).ColView(0),
-			b:    NewDense(3, 1, []float64{0.5, 0.5, 1}).ColView(0),
+			a:    NewDense(3, 1, []float64{0.5, 1, 2}).ColView(0).Vector(),
+			b:    NewDense(3, 1, []float64{0.5, 0.5, 1}).ColView(0).Vector(),
 			want: NewVector(3, []float64{1, 2, 2}),
 		},
 	} {

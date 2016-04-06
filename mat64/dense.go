@@ -157,14 +157,14 @@ func (m *Dense) T() Matrix {
 	return Transpose{m}
 }
 
-// ColView returns a Vector reflecting the column j, backed by the matrix data.
+// ColView returns a ColVector reflecting the column j, backed by the matrix data.
 //
 // See ColViewer for more information.
-func (m *Dense) ColView(j int) *Vector {
+func (m *Dense) ColView(j int) *ColVector {
 	if j >= m.mat.Cols || j < 0 {
 		panic(matrix.ErrColAccess)
 	}
-	return &Vector{
+	return &ColVector{
 		mat: blas64.Vector{
 			Inc:  m.mat.Stride,
 			Data: m.mat.Data[j : (m.mat.Rows-1)*m.mat.Stride+j+1],
@@ -202,15 +202,14 @@ func (m *Dense) SetRow(i int, src []float64) {
 	copy(m.rawRowView(i), src)
 }
 
-// RowView returns row i of the matrix data represented as a column vector,
-// backed by the matrix data.
+// ColView returns a RowVector reflecting the row i, backed by the matrix data.
 //
 // See RowViewer for more information.
-func (m *Dense) RowView(i int) *Vector {
+func (m *Dense) RowView(i int) *RowVector {
 	if i >= m.mat.Rows || i < 0 {
 		panic(matrix.ErrRowAccess)
 	}
-	return &Vector{
+	return &RowVector{
 		mat: blas64.Vector{
 			Inc:  1,
 			Data: m.rawRowView(i),
@@ -379,9 +378,9 @@ func (m *Dense) Clone(a Matrix) {
 
 // Copy makes a copy of elements of a into the receiver. It is similar to the
 // built-in copy; it copies as much as the overlap between the two matrices and
-// returns the number of rows and columns it copied. If a aliases the receiver
-// and is a transposed Dense or Vector, with a non-unitary increment, Copy will
-// panic.
+// returns the number of rows and columns it copied. If a is a non-RowVector
+// RawVectorer it is treated as a column vector. If a aliases the receiver
+// and is a transposed Dense or RawVectorer, Copy will panic.
 //
 // See the Copier interface for more information.
 func (m *Dense) Copy(a Matrix) (r, c int) {
@@ -422,18 +421,53 @@ func (m *Dense) Copy(a Matrix) (r, c int) {
 				// Nothing to do.
 			}
 		}
-	case *Vector:
+	case RawVectorer:
 		var n, stride int
-		amat := aU.mat
-		if trans {
-			if amat.Inc != 1 {
+		amat := aU.RawVector()
+		switch aU := aU.(type) {
+		case *Vector:
+			if trans {
 				m.checkOverlap(aU.asGeneral())
+				n = c
+				stride = 1
+			} else {
+				n = r
+				stride = m.mat.Stride
 			}
-			n = c
-			stride = 1
-		} else {
-			n = r
-			stride = m.mat.Stride
+		case *RowVector:
+			if trans {
+				m.checkOverlap(aU.Vector().asGeneral())
+				n = r
+				stride = m.mat.Stride
+			} else {
+				n = c
+				stride = 1
+			}
+		case *ColVector:
+			if trans {
+				m.checkOverlap(aU.Vector().asGeneral())
+				n = c
+				stride = 1
+			} else {
+				n = r
+				stride = m.mat.Stride
+			}
+		default:
+			if trans {
+				n = c
+				// We cannot use asGeneral since that
+				// is a Vector method.
+				m.checkOverlap(blas64.General{
+					Rows:   n,
+					Cols:   1,
+					Stride: amat.Inc,
+					Data:   amat.Data,
+				})
+				stride = 1
+			} else {
+				n = r
+				stride = m.mat.Stride
+			}
 		}
 		if amat.Inc == 1 && stride == 1 {
 			copy(m.mat.Data, amat.Data[:n])

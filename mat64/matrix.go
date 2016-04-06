@@ -87,10 +87,10 @@ type Mutable interface {
 	Matrix
 }
 
-// A RowViewer can return a Vector reflecting a row that is backed by the matrix
+// A RowViewer can return a RowVector reflecting a row that is backed by the matrix
 // data. The Vector returned will have length equal to the number of columns.
 type RowViewer interface {
-	RowView(i int) *Vector
+	RowView(i int) *RowVector
 }
 
 // A RawRowViewer can return a slice of float64 reflecting a row that is backed by the matrix
@@ -99,10 +99,10 @@ type RawRowViewer interface {
 	RawRowView(i int) []float64
 }
 
-// A ColViewer can return a Vector reflecting a column that is backed by the matrix
+// A ColViewer can return a ColVector reflecting a column that is backed by the matrix
 // data. The Vector returned will have length equal to the number of rows.
 type ColViewer interface {
-	ColView(j int) *Vector
+	ColView(j int) *ColVector
 }
 
 // A RawColViewer can return a slice of float64 reflecting a column that is backed by the matrix
@@ -132,8 +132,7 @@ type Reseter interface {
 // starts at row and column 0 and has dimensions equal to the minimum dimensions of
 // the two matrices. The number of row and columns copied is returned.
 // Copy will copy from a source that aliases the receiver unless the source is transposed;
-// an aliasing transpose copy will panic with the exception for a special case when
-// the source data has a unitary increment or stride.
+// an aliasing transpose copy will panic.
 type Copier interface {
 	Copy(a Matrix) (r, c int)
 }

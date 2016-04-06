@@ -56,6 +56,38 @@ func (v *Vector) at(i int) float64 {
 	return v.mat.Data[i*v.mat.Inc]
 }
 
+// At returns the element at row i.
+// It panics if j is out of bounds or if i is not zero.
+func (v *RowVector) At(i, j int) float64 {
+	if j < 0 || j >= v.n {
+		panic(matrix.ErrColAccess)
+	}
+	if i != 0 {
+		panic(matrix.ErrRowAccess)
+	}
+	return v.at(i)
+}
+
+func (v *RowVector) at(i int) float64 {
+	return v.mat.Data[i*v.mat.Inc]
+}
+
+// At returns the element at row i.
+// It panics if i is out of bounds or if j is not zero.
+func (v *ColVector) At(i, j int) float64 {
+	if i < 0 || i >= v.n {
+		panic(matrix.ErrRowAccess)
+	}
+	if j != 0 {
+		panic(matrix.ErrColAccess)
+	}
+	return v.at(i)
+}
+
+func (v *ColVector) at(i int) float64 {
+	return v.mat.Data[i*v.mat.Inc]
+}
+
 // SetVec sets the element at row i to the value val.
 // It panics if i is out of bounds.
 func (v *Vector) SetVec(i int, val float64) {
