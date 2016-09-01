@@ -115,7 +115,11 @@ func (s *SymDense) Reset() {
 	s.mat.Data = s.mat.Data[:0]
 }
 
-func (s *SymDense) isZero() bool {
+// IsZero returns whether the receiver is a zero value. A zero value may be
+// used as a receiver for arbitrary size-restricted operations, but holds
+// no elements. SymDense matrices may be put into the zero state by a call to
+// Reset.
+func (s *SymDense) IsZero() bool {
 	// It must be the case that m.Dims() returns
 	// zeros in this case. See comment in Reset().
 	return s.mat.N == 0
@@ -127,7 +131,7 @@ func (s *SymDense) reuseAs(n int) {
 	if s.mat.N > s.cap {
 		panic(badSymCap)
 	}
-	if s.isZero() {
+	if s.IsZero() {
 		s.mat = blas64.Symmetric{
 			N:      n,
 			Stride: n,
@@ -272,7 +276,7 @@ func (s *SymDense) SymRankK(a Symmetric, alpha float64, x Matrix) {
 func (s *SymDense) SymOuterK(alpha float64, x Matrix) {
 	n, _ := x.Dims()
 	switch {
-	case s.isZero():
+	case s.IsZero():
 		s.mat = blas64.Symmetric{
 			N:      n,
 			Stride: n,
