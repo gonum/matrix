@@ -315,3 +315,48 @@ func TestTriMul(t *testing.T) {
 	receiver = NewTriDense(3, matrix.Upper, nil)
 	testTwoInput(t, "TriMul", receiver, method, denseComparison, legalTypesUpper, legalSizeTriMul, 1e-14)
 }
+
+func TestTriExp(t *testing.T) {
+	method := func(receiver, a Matrix) {
+		type ExpTrier interface {
+			Exp(a Triangular)
+		}
+		receiver.(ExpTrier).Exp(a.(Triangular))
+	}
+	denseComparison := func(receiver, a *Dense) {
+		receiver.Exp(a)
+	}
+	legalSizeTriMul := func(ar, ac int) bool {
+		// Need both to be square and the sizes to be the same
+		return ar == ac
+	}
+
+	// The legal types are triangles with the same TriKind.
+	// legalTypesTri returns whether both input arguments are Triangular.
+	legalTypes := func(a Matrix) bool {
+		if _, ok := a.(Triangular); !ok {
+			return false
+		}
+		return true
+	}
+	legalTypesLower := func(a Matrix) bool {
+		if !legalTypes(a) {
+			return false
+		}
+		_, kind := a.(Triangular).Triangle()
+		r := kind == matrix.Lower
+		return r
+	}
+
+	for _, receiver := range []*TriDense{
+		NewTriDense(2, matrix.Lower, []float64{0, 0, 2, 0}),
+		NewTriDense(2, matrix.Lower, []float64{1, 0, 2, 1}),
+		NewTriDense(3, matrix.Lower, []float64{0, 0, 0, 2, 0, 0, 3, 4, 0}),
+		NewTriDense(3, matrix.Lower, []float64{1, 0, 0, 2, 1, 0, 3, 4, 1}),
+		NewTriDense(4, matrix.Lower, []float64{0, 0, 0, 0, 2, 0, 0, 0, 3, 4, 0, 0, 5, 6, 7, 0}),
+		NewTriDense(4, matrix.Lower, []float64{1, 0, 0, 0, 2, 1, 0, 0, 3, 4, 1, 0, 5, 6, 7, 1})} {
+
+		testOneInput(t, "Exp", receiver, method, denseComparison, legalTypesLower, legalSizeTriMul, 1e-12)
+
+	}
+}

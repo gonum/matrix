@@ -124,6 +124,7 @@ func NewTriDense(n int, kind matrix.TriKind, mat []float64) *TriDense {
 	}
 }
 
+// Dims returns the dimensions of t.
 func (t *TriDense) Dims() (r, c int) {
 	return t.mat.N, t.mat.N
 }
@@ -392,6 +393,62 @@ func (t *TriDense) MulTri(a, b Triangular) {
 			}
 			t.SetTri(i, j, v)
 		}
+	}
+}
+
+// Exp calculates the exponential of the matrix a, e^a, placing the result
+// in the receiver. If a has an odd number of rows, the matrix will be converted
+// to a Dense to perform the calculation.
+func (t *TriDense) Exp(a Triangular) {
+	n, kind := a.Triangle()
+	t.reuseAs(a.Triangle())
+	t.Copy(a)
+
+	if n&(n-1) == 0 {
+		// Exponential is trivial for sizes of powers of two. Calculation performed on lower triangular.
+		aP := NewTriDense(n, kind, nil)
+		isUpper := kind == matrix.Upper
+		if isUpper {
+			aP.Copy(a.T())
+		} else {
+			aP.Copy(a)
+		}
+		computeKind := matrix.Lower
+		*t = *NewTriDense(n, computeKind, nil)
+		diag := NewTriDense(n, computeKind, nil)
+		eye := NewTriDense(n, computeKind, nil)
+		nilDiag := true
+		for i := 0; i < n; i++ {
+			eye.SetTri(i, i, 1)
+			v := aP.At(i, i)
+			if v != 0 {
+				nilDiag = false
+			}
+			diag.SetTri(i, i, math.Exp(v))
+			aP.SetTri(i, i, 0)
+		}
+		// TODO(ChristopherRabotin): Use (*TriDense).Add(a, b) once written.
+		// Compute exponential which is simply diag*(eye + aP) (if diag != [0]).
+		for i := 0; i < n; i++ {
+			for j := 0; j < n; j++ {
+				if i >= j {
+					t.SetTri(i, j, eye.At(i, j)+aP.At(i, j))
+				}
+			}
+		}
+		if !nilDiag {
+			t.MulTri(diag, t)
+		}
+		if isUpper {
+			t.Copy(t.T())
+		}
+	} else {
+		// Convert to Dense then convert back to Triangle.
+		// The exponential of a triangular matrix is always a triangular matrix
+		// of the same kind.
+		var triExp Dense
+		triExp.Exp(DenseCopyOf(t))
+		t.Copy(&triExp) // Store result in receiver.
 	}
 }
 
