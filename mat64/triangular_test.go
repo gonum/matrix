@@ -347,16 +347,19 @@ func TestTriExp(t *testing.T) {
 		r := kind == matrix.Lower
 		return r
 	}
+	legalTypesUpper := func(a Matrix) bool {
+		if !legalTypes(a) {
+			return false
+		}
+		_, kind := a.(Triangular).Triangle()
+		r := kind == matrix.Upper
+		return r
+	}
 
-	for _, receiver := range []*TriDense{
-		NewTriDense(2, matrix.Lower, []float64{0, 0, 2, 0}),
-		NewTriDense(2, matrix.Lower, []float64{1, 0, 2, 1}),
-		NewTriDense(3, matrix.Lower, []float64{0, 0, 0, 2, 0, 0, 3, 4, 0}),
-		NewTriDense(3, matrix.Lower, []float64{1, 0, 0, 2, 1, 0, 3, 4, 1}),
-		NewTriDense(4, matrix.Lower, []float64{0, 0, 0, 0, 2, 0, 0, 0, 3, 4, 0, 0, 5, 6, 7, 0}),
-		NewTriDense(4, matrix.Lower, []float64{1, 0, 0, 0, 2, 1, 0, 0, 3, 4, 1, 0, 5, 6, 7, 1})} {
-
-		testOneInput(t, "Exp", receiver, method, denseComparison, legalTypesLower, legalSizeTriMul, 1e-12)
-
+	for n := 0; n < 8; n++ {
+		receiver := NewTriDense(n, matrix.Lower, nil)
+		testOneInput(t, "Exp", receiver, method, denseComparison, legalTypesLower, legalSizeTriMul, 1e-14)
+		receiver = NewTriDense(n, matrix.Upper, nil)
+		testOneInput(t, "Exp", receiver, method, denseComparison, legalTypesUpper, legalSizeTriMul, 1e-14)
 	}
 }

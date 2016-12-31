@@ -405,42 +405,48 @@ func (t *TriDense) Exp(a Triangular) {
 	t.Copy(a)
 
 	if n&(n-1) == 0 {
-		// Exponential is trivial for sizes of powers of two. Calculation performed on lower triangular.
-		aP := NewTriDense(n, kind, nil)
-		isUpper := kind == matrix.Upper
-		if isUpper {
+		// Exponential is trivial for sizes of powers of two.
+		// Calculation performed on upper triangular.
+		computeKind := matrix.Upper
+		aP := NewTriDense(n, computeKind, nil)
+		if kind != computeKind {
 			aP.Copy(a.T())
 		} else {
 			aP.Copy(a)
 		}
-		computeKind := matrix.Lower
-		*t = *NewTriDense(n, computeKind, nil)
-		diag := NewTriDense(n, computeKind, nil)
+		tUp := *NewTriDense(n, computeKind, nil)
 		eye := NewTriDense(n, computeKind, nil)
+		diagExp := NewTriDense(n, computeKind, nil)
 		nilDiag := true
 		for i := 0; i < n; i++ {
-			eye.SetTri(i, i, 1)
 			v := aP.At(i, i)
 			if v != 0 {
 				nilDiag = false
 			}
-			diag.SetTri(i, i, math.Exp(v))
+			// Build the identity matrix.
+			eye.SetTri(i, i, 1)
+			// exp(M) = M[exp(m_ij)] if M is diagonal.
+			diagExp.SetTri(i, i, math.Exp(v))
+			// Only store the dual part of the hyperdual number in aP.
 			aP.SetTri(i, i, 0)
 		}
 		// TODO(ChristopherRabotin): Use (*TriDense).Add(a, b) once written.
 		// Compute exponential which is simply diag*(eye + aP) (if diag != [0]).
 		for i := 0; i < n; i++ {
 			for j := 0; j < n; j++ {
-				if i >= j {
-					t.SetTri(i, j, eye.At(i, j)+aP.At(i, j))
+				if j >= i {
+					tUp.SetTri(i, j, eye.At(i, j)+aP.At(i, j))
 				}
 			}
 		}
 		if !nilDiag {
-			t.MulTri(diag, t)
+			tUp.MulTri(diagExp, &tUp)
 		}
-		if isUpper {
-			t.Copy(t.T())
+		*t = *NewTriDense(n, kind, nil)
+		if kind == computeKind {
+			t.Copy(&tUp)
+		} else {
+			t.Copy(tUp.T())
 		}
 	} else {
 		// Convert to Dense then convert back to Triangle.
