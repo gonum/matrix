@@ -402,6 +402,14 @@ func (t *TriDense) MulTri(a, b Triangular) {
 func (t *TriDense) Exp(a Triangular) {
 	n, kind := a.Triangle()
 	t.reuseAs(a.Triangle())
+
+	aU, _ := untransposeTri(a)
+	t.reuseAs(n, kind)
+	var restore func()
+	if t == aU {
+		t, restore = t.isolatedWorkspace(aU)
+		defer restore()
+	}
 	t.Copy(a)
 
 	if n&(n-1) == 0 {
