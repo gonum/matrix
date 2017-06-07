@@ -125,6 +125,7 @@ func NewTriDense(n int, kind matrix.TriKind, data []float64) *TriDense {
 	}
 }
 
+// Dims returns the dimensions of t.
 func (t *TriDense) Dims() (r, c int) {
 	return t.mat.N, t.mat.N
 }
@@ -393,6 +394,76 @@ func (t *TriDense) MulTri(a, b Triangular) {
 			}
 			t.SetTri(i, j, v)
 		}
+	}
+}
+
+// Exp calculates the exponential of the matrix a, e^a, placing the result
+// in the receiver. If a has an odd number of rows, the matrix will be converted
+// to a Dense to perform the calculation.
+func (t *TriDense) Exp(a Triangular) {
+	n, kind := a.Triangle()
+	t.reuseAs(a.Triangle())
+
+	aU, _ := untransposeTri(a)
+	t.reuseAs(n, kind)
+	var restore func()
+	if t == aU {
+		t, restore = t.isolatedWorkspace(aU)
+		defer restore()
+	}
+	t.Copy(a)
+
+	if n&(n-1) == 0 {
+		// Exponential is trivial for sizes of powers of two.
+		// Calculation performed on upper triangular.
+		computeKind := matrix.Upper
+		aP := NewTriDense(n, computeKind, nil)
+		if kind != computeKind {
+			aP.Copy(a.T())
+		} else {
+			aP.Copy(a)
+		}
+		tUp := *NewTriDense(n, computeKind, nil)
+		eye := NewTriDense(n, computeKind, nil)
+		diagExp := NewTriDense(n, computeKind, nil)
+		nilDiag := true
+		for i := 0; i < n; i++ {
+			v := aP.At(i, i)
+			if v != 0 {
+				nilDiag = false
+			}
+			// Build the identity matrix.
+			eye.SetTri(i, i, 1)
+			// exp(M) = M[exp(m_ij)] if M is diagonal.
+			diagExp.SetTri(i, i, math.Exp(v))
+			// Only store the dual part of the hyperdual number in aP.
+			aP.SetTri(i, i, 0)
+		}
+		// TODO(ChristopherRabotin): Use (*TriDense).Add(a, b) once written.
+		// Compute exponential which is simply diag*(eye + aP) (if diag != [0]).
+		for i := 0; i < n; i++ {
+			for j := 0; j < n; j++ {
+				if j >= i {
+					tUp.SetTri(i, j, eye.At(i, j)+aP.At(i, j))
+				}
+			}
+		}
+		if !nilDiag {
+			tUp.MulTri(diagExp, &tUp)
+		}
+		*t = *NewTriDense(n, kind, nil)
+		if kind == computeKind {
+			t.Copy(&tUp)
+		} else {
+			t.Copy(tUp.T())
+		}
+	} else {
+		// Convert to Dense then convert back to Triangle.
+		// The exponential of a triangular matrix is always a triangular matrix
+		// of the same kind.
+		var triExp Dense
+		triExp.Exp(DenseCopyOf(t))
+		t.Copy(&triExp) // Store result in receiver.
 	}
 }
 
