@@ -198,7 +198,23 @@ func (m *Dense) Caps() (r, c int) { return m.capRows, m.capCols }
 
 // T performs an implicit transpose by returning the receiver inside a Transpose.
 func (m *Dense) T() Matrix {
-	return Transpose{m}
+	r, c := m.Dims()
+	data := make([]float64, r*c)
+	for i := 0; i < r; i++ {
+		for j := 0; j < c; j++ {
+			data[j*r+i] = m.mat.Data[i*c+j]
+		}
+	}
+	return &Dense{
+		mat: blas64.General{
+			Rows:   c,
+			Cols:   r,
+			Stride: r,
+			Data:   data,
+		},
+		capRows: c,
+		capCols: r,
+	}
 }
 
 // ColView returns a Vector reflecting the column j, backed by the matrix data.
