@@ -20,18 +20,16 @@ func TestLUD(t *testing.T) {
 		var want Dense
 		want.Clone(a)
 
-		lu := &LU{}
+		var lu LU
 		lu.Factorize(a)
 
-		var l, u TriDense
-		l.LFromLU(lu)
-		u.UFromLU(lu)
+		l := lu.LTo(nil)
+		u := lu.UTo(nil)
 		var p Dense
 		pivot := lu.Pivot(nil)
 		p.Permutation(n, pivot)
 		var got Dense
-		got.Mul(&p, &l)
-		got.Mul(&got, &u)
+		got.Product(&p, l, u)
 		if !EqualApprox(&got, &want, 1e-12) {
 			t.Errorf("PLU does not equal original matrix.\nWant: %v\n Got: %v", want, got)
 		}
@@ -93,8 +91,8 @@ func TestLURankOne(t *testing.T) {
 // luReconstruct reconstructs the original A matrix from an LU decomposition.
 func luReconstruct(lu *LU) *Dense {
 	var L, U TriDense
-	L.LFromLU(lu)
-	U.UFromLU(lu)
+	lu.LTo(&L)
+	lu.UTo(&U)
 	var P Dense
 	pivot := lu.Pivot(nil)
 	P.Permutation(len(pivot), pivot)
