@@ -71,7 +71,7 @@ func (m *Dense) reuseAs(r, c int) {
 		// Panic as a string, not a mat64.Error.
 		panic("mat64: caps not correctly set")
 	}
-	if m.isZero() {
+	if m.IsZero() {
 		m.mat = blas64.General{
 			Rows:   r,
 			Cols:   c,
@@ -97,7 +97,7 @@ func (m *Dense) reuseAsZeroed(r, c int) {
 		// Panic as a string, not a mat64.Error.
 		panic("mat64: caps not correctly set")
 	}
-	if m.isZero() {
+	if m.IsZero() {
 		m.mat = blas64.General{
 			Rows:   r,
 			Cols:   c,
@@ -149,7 +149,11 @@ func (m *Dense) Reset() {
 	m.mat.Data = m.mat.Data[:0]
 }
 
-func (m *Dense) isZero() bool {
+// IsZero returns whether the receiver is a zero value. A zero value may be
+// used as a receiver for arbitrary size-restricted operations, but holds
+// no elements. Dense matrices may be put into the zero state by a call to
+// Reset.
+func (m *Dense) IsZero() bool {
 	// It must be the case that m.Dims() returns
 	// zeros in this case. See comment in Reset().
 	return m.mat.Stride == 0

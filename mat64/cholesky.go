@@ -61,7 +61,7 @@ func (c *Cholesky) updateCond(norm float64) {
 // factorization must not be used.
 func (c *Cholesky) Factorize(a Symmetric) (ok bool) {
 	n := a.Symmetric()
-	if c.isZero() {
+	if c.IsZero() {
 		c.chol = NewTriDense(n, matrix.Upper, nil)
 	} else {
 		c.chol = NewTriDense(n, matrix.Upper, use(c.chol.mat.Data, n*n))
@@ -83,7 +83,7 @@ func (c *Cholesky) Factorize(a Symmetric) (ok bool) {
 // Reset resets the factorization so that it can be reused as the receiver of a
 // dimensionally restricted operation.
 func (c *Cholesky) Reset() {
-	if !c.isZero() {
+	if !c.IsZero() {
 		c.chol.Reset()
 	}
 	c.cond = math.Inf(1)
@@ -306,7 +306,7 @@ func (c *Cholesky) SymRankOne(orig *Cholesky, alpha float64, x *Vector) (ok bool
 		panic(matrix.ErrShape)
 	}
 	if orig != c {
-		if c.isZero() {
+		if c.IsZero() {
 			c.chol = NewTriDense(n, matrix.Upper, nil)
 		} else if c.chol.mat.N != n {
 			panic(matrix.ErrShape)
@@ -442,10 +442,10 @@ func (c *Cholesky) SymRankOne(orig *Cholesky, alpha float64, x *Vector) (ok bool
 	return ok
 }
 
-func (c *Cholesky) isZero() bool {
+func (c *Cholesky) IsZero() bool {
 	return c.chol == nil
 }
 
 func (c *Cholesky) valid() bool {
-	return !c.isZero() && !c.chol.isZero()
+	return !c.IsZero() && !c.chol.IsZero()
 }

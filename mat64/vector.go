@@ -76,7 +76,7 @@ func (v *Vector) SliceVec(i, k int) *Vector {
 }
 
 func (v *Vector) Dims() (r, c int) {
-	if v.isZero() {
+	if v.IsZero() {
 		return 0, 0
 	}
 	return v.n, 1
@@ -418,7 +418,7 @@ func (v *Vector) MulVec(a Matrix, b *Vector) {
 // reuseAs resizes an empty vector to a r×1 vector,
 // or checks that a non-empty matrix is r×1.
 func (v *Vector) reuseAs(r int) {
-	if v.isZero() {
+	if v.IsZero() {
 		v.mat = blas64.Vector{
 			Inc:  1,
 			Data: use(v.mat.Data, r),
@@ -431,7 +431,7 @@ func (v *Vector) reuseAs(r int) {
 	}
 }
 
-func (v *Vector) isZero() bool {
+func (v *Vector) IsZero() bool {
 	// It must be the case that v.Dims() returns
 	// zeros in this case. See comment in Reset().
 	return v.mat.Inc == 0

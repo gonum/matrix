@@ -463,7 +463,7 @@ func (m *Dense) Exp(a Matrix) {
 	}
 
 	var w *Dense
-	if m.isZero() {
+	if m.IsZero() {
 		m.reuseAsZeroed(r, r)
 		w = m
 	} else {
@@ -692,7 +692,7 @@ func (m *Dense) Outer(alpha float64, x, y *Vector) {
 		// Panic as a string, not a mat64.Error.
 		panic("mat64: caps not correctly set")
 	}
-	if m.isZero() {
+	if m.IsZero() {
 		m.mat = blas64.General{
 			Rows:   r,
 			Cols:   c,

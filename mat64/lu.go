@@ -83,7 +83,7 @@ func (lu *LU) Reset() {
 	lu.pivot = lu.pivot[:0]
 }
 
-func (lu *LU) isZero() bool {
+func (lu *LU) IsZero() bool {
 	return len(lu.pivot) == 0
 }
 
@@ -154,7 +154,7 @@ func (lu *LU) RankOne(orig *LU, alpha float64, x, y *Vector) {
 		panic(matrix.ErrShape)
 	}
 	if orig != lu {
-		if lu.isZero() {
+		if lu.IsZero() {
 			if cap(lu.pivot) < n {
 				lu.pivot = make([]int, n)
 			}
