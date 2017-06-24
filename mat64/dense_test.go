@@ -1871,6 +1871,12 @@ func TestInverse(t *testing.T) {
 	}
 }
 
+func TestTranspose(t *testing.T) {
+	dense := NewDense(3, 4, []float64{1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3})
+	dense_t := dense.T()
+	fmt.Println(dense_t)
+}
+
 var (
 	wd *Dense
 )
